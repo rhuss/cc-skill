@@ -1,0 +1,16 @@
+# Claude Code local settings
+.claude/settings.local.json
+
+# spex: generated/local files
+.claude/skills/
+.specify/.spex-phase
+.specify/.spex-state
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~

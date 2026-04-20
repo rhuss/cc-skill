@@ -1,0 +1,22 @@
+{
+  "name": "skill-plugin-development",
+  "owner": {
+    "name": "Roland Huss",
+    "email": "rhuss@redhat.com"
+  },
+  "metadata": {
+    "description": "Local development marketplace for the Skill Authoring plugin. Evaluates and enhances Claude Code SKILL.md files against 14 skill-authoring patterns."
+  },
+  "plugins": [
+    {
+      "name": "skill",
+      "version": "1.0.0",
+      "description": "Evaluate and enhance Claude Code SKILL.md files against 14 skill-authoring patterns",
+      "author": {
+        "name": "Roland Huss",
+        "email": "rhuss@redhat.com"
+      },
+      "source": "./skill"
+    }
+  ]
+}
