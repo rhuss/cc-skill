@@ -98,12 +98,13 @@
 - Rigid sections for output formats, validation steps, error handling
 - Flexible sections for analysis, creative decisions, user interaction
 - No over-specification of judgment calls or under-specification of exact outputs
+- No weak control-flow declarations: steps or headings labeled "Optional", "if desired", "consider", or "you may" when the step contains conditional logic that already handles the skip case (making the "Optional" label redundant and permission-granting)
 
 **Quality criteria**:
-- **Strong**: A reader can tell which parts are "follow exactly" vs. "use your judgment." Output formats are specified precisely. Analysis and reasoning steps allow adaptation.
-- **Present**: Instructions exist but everything is the same level of specificity (either all rigid or all vague).
+- **Strong**: A reader can tell which parts are "follow exactly" vs. "use your judgment." Output formats are specified precisely. Analysis and reasoning steps allow adaptation. Workflow steps that have their own branching logic (e.g., "if available, do X; if not, skip") are not additionally labeled "Optional" in headings or introductory text, because the branch already encodes the skip condition. No step uses soft language ("may", "consider", "optionally") on actions that must happen when their condition is met.
+- **Present**: Instructions exist but everything is the same level of specificity (either all rigid or all vague). Or: steps have correct branching logic but headings or framing undermine it with soft labels that invite skipping the branch check entirely.
 
-**Improvement guidance**: Mark output-format sections as rigid (exact templates, required fields). Mark analysis and decision sections as flexible (criteria to consider, not exact steps to follow). Use imperative verbs for rigid steps, descriptive language for flexible ones.
+**Improvement guidance**: Mark output-format sections as rigid (exact templates, required fields). Mark analysis and decision sections as flexible (criteria to consider, not exact steps to follow). Use imperative verbs for rigid steps, descriptive language for flexible ones. Audit step headings and introductory sentences for weak control-flow declarations: if a step says "(Optional)" but contains "if X, do Y; if not, skip," remove the "Optional" label. The branching logic is the control flow; the label undermines it by giving the LLM permission to skip the branch check itself.
 
 ---
 

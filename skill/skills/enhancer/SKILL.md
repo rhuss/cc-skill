@@ -191,19 +191,40 @@ After rewriting, check the line count of the enhanced SKILL.md.
 
 Record any new files created as `NEW_FILES` (list of filename and purpose pairs).
 
-### Step 8: Prompt Plugin Delegation (Optional)
+### Step 8: Prompt Plugin Delegation
 
-Check if prompt plugin skills are available in the current session. Look for skills with names starting with `prompt:` (e.g., `prompt:enhance`, `prompt:check`).
+Check if prompt plugin skills are available in the current session. Look for any available skill with a `prompt:` prefix that enhances SKILL.md files (e.g., `prompt:skill-enhancer`). The prompt plugin skill name may vary across installations, so match by prefix and purpose rather than exact name.
 
-**If prompt plugin skills are available**: Delegate to the prompt plugin for additional prompt-pattern improvements on the enhanced SKILL.md. The prompt plugin handles a different set of patterns (prompt design patterns) that complement the skill-authoring patterns handled here.
+**If prompt plugin skills are available**: Invoke the prompt plugin against the enhanced SKILL.md. The prompt plugin checks a different set of patterns (prompt design patterns) that complement the skill-authoring patterns handled here. These are independent analyses; one does not substitute for the other.
 
-**If prompt plugin skills are not available**: Continue silently. Do not print errors, warnings, or any mention of the missing plugin. The enhancer works standalone using skill-authoring patterns.
+Do not skip this step because you judge the skill-authoring improvements to be "sufficient." The decision about whether prompt-pattern improvements add value belongs to the user at the Apply/Skip gate, not to you during enhancement.
+
+**If prompt plugin skills are not available**: Continue to Step 9. Do not print errors, warnings, or any mention of the missing plugin. The enhancer works standalone using skill-authoring patterns when the prompt plugin is not installed.
 
 ### Step 9: Changelog and User Choice
 
 Present the enhancement results and let the user decide whether to apply changes.
 
-#### 9a: Re-evaluate the Enhanced Skill
+#### 9a: Step Execution Log
+
+Before presenting results, list which steps were executed and which were skipped. Use this format:
+
+```
+### Steps Executed
+- Step 1: Input Handling — completed
+- Step 2: Load Knowledge — completed
+- Step 3: Baseline Evaluation — completed
+- Step 4: Already-Optimal Detection — not optimal, continued
+- Step 5: Enhancement Targeting — completed, N targets selected
+- Step 6: Rewrite — completed
+- Step 7: File Splitting — skipped (under 500 lines) | completed (N files)
+- Step 8: Prompt Plugin Delegation — invoked prompt:skill-enhancer | skipped (plugin not available)
+- Step 9: Changelog — in progress
+```
+
+Every step must appear. For skipped steps, state the reason. This log forces explicit acknowledgment of each step rather than allowing silent omission.
+
+#### 9b: Re-evaluate the Enhanced Skill
 
 Run the same 14-pattern evaluation from Step 3 against the enhanced skill text. Record results as `ENHANCED_STATUS`.
 
@@ -211,11 +232,14 @@ Verify that the enhanced skill improved over the baseline. If `ENHANCED_STATUS` 
 
 A pattern status that does not change between baseline and enhanced evaluation usually means the enhancement was too shallow. For example, adding a generic "be careful" warning does not move Known Gotchas from "present" to "strong." The gotcha must name a specific mistake and its mitigation.
 
-#### 9b: Format the Output
+#### 9c: Format the Output
 
 Format the output exactly as follows:
 
 ```
+### Steps Executed
+[Step execution log from 9a]
+
 ## Enhanced Skill
 
 [Full rewritten SKILL.md text, including frontmatter]
@@ -253,7 +277,7 @@ Format the output exactly as follows:
 - The "Status Change" table only includes patterns whose status changed. Do not list unchanged patterns.
 - The "Summary" line shows the total count of patterns that moved from absent/present to a better status, plus the number of new files if any.
 
-#### 9c: Present the User Choice
+#### 9d: Present the User Choice
 
 After showing the output, present the user with a choice:
 
