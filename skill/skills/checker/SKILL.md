@@ -1,6 +1,6 @@
 ---
 name: "skill:check"
-description: "Evaluate a SKILL.md file against 14 skill-authoring patterns. Use when reviewing skill quality, checking pattern coverage, testing activation metadata, or assessing a skill before sharing. Do NOT use for prompt-level analysis (use prompt:check instead) or for enhancing/rewriting skills (use skill:enhance instead)."
+description: "Evaluate a SKILL.md file against 14 skill-authoring patterns. Use when reviewing skill quality, checking pattern coverage, testing activation metadata, or assessing a skill before sharing. Do NOT use for prompt-level analysis (use prompt:skill-checker instead) or for enhancing/rewriting skills (use skill:enhance instead)."
 argument-hint: "[path/to/SKILL.md]"
 user-invocable: true
 ---
@@ -71,9 +71,15 @@ Evaluate `SKILL_CONTENT` against each of the 14 patterns from the knowledge file
 
    The "present" vs. "strong" distinction is the most consequential judgment call in this step. A pattern is "present" when the skill does the thing but a reader could still misapply it in an edge case. A pattern is "strong" when the instructions are specific enough that an edge case would be handled correctly without further clarification.
 
+   **Borderline example**: A skill's error handling section lists "File not found" and "Empty file" conditions but omits "file exists but is not valid YAML." Is the Known Gotchas pattern "present" or "strong"? It is "present" because the coverage exists but a practitioner would still miss a common failure mode. To reach "strong," the gotcha coverage must include the non-obvious cases, not just the ones a careful reader would already anticipate.
+
 5. **Write a note**. Write one sentence explaining the classification. Reference specific content from the skill (a section name, a phrase, a missing element) so the note is actionable. Do not use generic observations.
 
-   For example, a strong Activation Metadata note might read: "Description names 4 trigger verbs and 2 exclusion targets with `argument-hint` present." A weak note would read: "Frontmatter looks good." The note should let a reader understand the rating without re-reading the skill.
+   Notes must be specific enough that a reader can understand the rating without re-reading the skill. This is because the note is the primary feedback mechanism: vague notes waste the user's time and make the checklist decorative rather than diagnostic.
+
+   For example, a strong Activation Metadata note might read: "Description names 4 trigger verbs and 2 exclusion targets with `argument-hint` present." A weak note would read: "Frontmatter looks good."
+
+   Common mistake: writing notes that describe the pattern definition instead of the skill's application of it. "Execution Checklist means steps are numbered" describes the pattern. "Six numbered steps with halt conditions at Steps 1 and 2" describes the skill. Always write the second kind.
 
 Record all 14 evaluations for use in Step 6.
 
@@ -83,7 +89,7 @@ Analyze the `description` field from the skill's frontmatter to evaluate how wel
 
 1. **Generate trigger scenarios**. Based on the description text, write at least 3 example user requests that should activate this skill. These should be realistic phrasings a user would type, not contrived examples. Vary the wording to test different trigger paths.
 
-2. **Generate non-trigger scenarios**. Write at least 1 example user request that sounds related but should NOT activate this skill. If the description includes exclusion clauses, derive the non-trigger from those.
+2. **Generate non-trigger scenarios**. Write at least 1 example user request that sounds related but should NOT activate this skill. If the description includes exclusion clauses, derive the non-trigger from those. Non-triggers test whether the description's boundaries are specific enough to prevent misrouting.
 
 3. **Assess description quality**. Write 1-3 observations about the description's effectiveness as a routing rule. Consider:
    - Does it name specific actions that map to user intent?
@@ -93,9 +99,9 @@ Analyze the `description` field from the skill's frontmatter to evaluate how wel
 
 ### Step 5: Check for Prompt Plugin
 
-Determine whether the prompt plugin's skills are available in the current session. Check if `/prompt:check` is listed as an available skill.
+Determine whether the prompt plugin's skills are available in the current session. Check for any available skill with a `prompt:` prefix that evaluates SKILL.md files (e.g., `prompt:skill-checker`). The prompt plugin skill name may vary across installations, so match by prefix and purpose rather than exact name.
 
-**If available**: Invoke `/prompt:check` against the same `SKILL_PATH`. Capture the output to include as a "Prompt Pattern Analysis" section in the final report.
+**If available**: Invoke the prompt plugin's skill checker against the same `SKILL_PATH`. Capture the output to include as a "Prompt Pattern Analysis" section in the final report.
 
 **If unavailable**: Skip this step entirely. Do not mention the prompt plugin, do not warn about its absence, and do not add a placeholder section. The skill operates standalone by default, and the prompt analysis is purely additive when the plugin happens to be loaded.
 
@@ -139,7 +145,11 @@ Full output template:
 | 14 | Autonomy Calibration | Meta | <status> | <one-line note> |
 
 **Summary**: <A> of <B> applicable patterns present, <C> of <B> strong, <D> improvements suggested
+```
 
+The trigger/non-trigger scenarios and description observations follow the pattern checklist. Truncate the description excerpt to 100 characters with `...` appended, so the activation test stays scannable without reproducing the full description.
+
+```
 ### Activation Test
 
 **Description analyzed**: "<first 100 characters of description>..."
@@ -175,7 +185,6 @@ Full output template:
 - Status values in the table must be one of: `strong`, `present`, `absent`, `N/A`
 - Each note is a single sentence, not a paragraph
 - The summary line uses the exact format shown, with counts filled in
-- The description excerpt in the activation test is truncated to 100 characters with `...` appended
 - Trigger and non-trigger examples are quoted strings
 - Do not include the full skill content in the output
 - Produce the complete output in a single response (no follow-up messages, no interactive prompts)
@@ -188,4 +197,6 @@ Full output template:
 | File not found (path does not exist) | Return: "**Error**: File not found: `<path>`. Please provide a valid path to a SKILL.md file." |
 | File is empty (0 bytes) | Return: "**Error**: The file at `<path>` is empty. A SKILL.md file needs YAML frontmatter with `name` and `description` fields at minimum." |
 | File has no YAML frontmatter or missing required fields | Return: "**Error**: `<path>` does not appear to be a valid SKILL.md file. Expected YAML frontmatter with `name` and `description` fields." |
+| File exists but contains binary or non-text content | Return: "**Error**: `<path>` does not appear to be a text file. SKILL.md files must be plain text with YAML frontmatter." |
+| YAML frontmatter delimiters present but content between them is not valid YAML | Return: "**Error**: `<path>` has frontmatter delimiters but the content between them is not valid YAML. Check for syntax errors (missing colons, bad indentation, unquoted special characters)." |
 | Knowledge file unavailable | Return: "**Error**: Could not load skill-authoring patterns from `${CLAUDE_PLUGIN_ROOT}/knowledge/skill-authoring-patterns.md`. The checker cannot run without pattern definitions." |

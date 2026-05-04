@@ -28,3 +28,8 @@ Register the plugin root (`skill/` directory) in Claude Code settings.
 Validate skills by running them against real SKILL.md files:
 - `/skill:check path/to/SKILL.md` for evaluation
 - `/skill:enhance path/to/SKILL.md` for improvement
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
