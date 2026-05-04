@@ -1,7 +1,7 @@
 # Brainstorm: Skill Evaluation and Enhancement Measurement
 
 **Date:** 2026-05-04
-**Status:** active
+**Status:** spec-created (branch: 001-eval-enhancement-docs)
 
 ## Problem Framing
 

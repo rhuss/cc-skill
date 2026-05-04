@@ -6,7 +6,7 @@ Last updated: 2026-05-04
 
 | # | Date | Topic | Status | Spec |
 |---|------|-------|--------|------|
-| 01 | 2026-05-04 | skill-eval | active | - |
+| 01 | 2026-05-04 | skill-eval | spec-created | 001 |
 
 ## Open Threads
 - Should the documentation include recommended judges tuned for skill quality evaluation? (from #01)
