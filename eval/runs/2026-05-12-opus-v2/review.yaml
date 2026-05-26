@@ -1,0 +1,10 @@
+run_id: "2026-05-12-opus-v2"
+reviewed_cases: 5
+feedback_cases: 0
+reviewer: "human"
+feedback:
+  case-001-well-crafted-deploy-skill: ""
+  case-002-minimal-bare-bones: ""
+  case-003-mixed-quality-migration: ""
+  case-004-readonly-analysis-skill: ""
+  case-005-subtle-present-vs-strong: ""

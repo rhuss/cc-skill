@@ -1,0 +1,16 @@
+description: >
+  A well-crafted deployment skill with strong patterns across most categories.
+  Tests that the checker correctly identifies strong implementations and
+  distinguishes them from merely present ones.
+expected_strong:
+  - Activation Metadata
+  - Exclusion Clause
+  - Context Budget
+  - Control Tuning
+  - Execution Checklist
+  - Known Gotchas
+  - Autonomy Calibration
+  - Template Scaffold
+expected_absent: []
+expected_na: []
+min_patterns_present: 12

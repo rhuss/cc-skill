@@ -1,0 +1,213 @@
+judges:
+  activation_test_present:
+    mean: 1.0
+    pass_rate: 1.0
+  assessment_quality:
+    mean: 3.8
+    pass_rate: null
+  pattern_table_present:
+    mean: 1.0
+    pass_rate: 1.0
+  summary_line_present:
+    mean: 1.0
+    pass_rate: 1.0
+  valid_statuses:
+    mean: 1.0
+    pass_rate: 1.0
+per_case:
+  case-001-well-crafted-deploy-skill:
+    activation_test_present:
+      rationale: Activation test with trigger and non-trigger scenarios
+      value: true
+    assessment_quality:
+      rationale: 'The assessment is thorough and specific across nearly all patterns.
+        Notes reference concrete elements from the skill: specific file paths (deploy/environments/<env>.yaml),
+        line numbers (lines 49, 56, 116, 118), exact script names (deploy.sh, health-check.sh),
+        specific trigger verbs, and named adjacent skills. Status classifications
+        are well-justified with clear reasoning for strong vs present distinctions
+        - e.g., Template Scaffold is ''present'' rather than ''strong'' because templates
+        exist but lack filled examples with concrete values, and Self-Correcting Loop
+        is ''present'' because health checks exist but no retry/recheck cycle is defined.
+        The activation test scenarios are realistic and the non-trigger scenario correctly
+        tests the boundary with deploy:rollback. Summary arithmetic (11 of 12 applicable,
+        9 of 12 strong) is correct given 2 N/A patterns, 9 strong, 2 present, and
+        1 absent. However, there is a notable discrepancy with expected values: Template
+        Scaffold was expected to be ''strong'' but was rated ''present'', and the
+        expected min_patterns_present was 12 but only 11 were found present (In-Skill
+        Examples is absent). The justification for Template Scaffold as ''present''
+        rather than ''strong'' is reasonable and well-argued (no filled example),
+        showing good judgment in the present/strong boundary. The reasoning for In-Skill
+        Examples as absent is also sound. The assessment loses a point from 5 because
+        the edge case handling, while good, doesn''t quite reach expert-level depth
+        in explaining why some classifications diverge from expectations, and the
+        activation test could explore more boundary conditions (e.g., ''deploy'' alone
+        without a target).'
+      value: 4
+    pattern_table_present:
+      rationale: All 14 pattern rows present
+      value: true
+    summary_line_present:
+      rationale: 11/12 present, 9 strong, 3 improvements
+      value: true
+    valid_statuses:
+      rationale: 14 statuses all valid
+      value: true
+  case-002-minimal-bare-bones:
+    activation_test_present:
+      rationale: Activation test with trigger and non-trigger scenarios
+      value: true
+    assessment_quality:
+      rationale: 'The assessment covers all 14 patterns with specific, actionable
+        notes that reference concrete elements from the skill (e.g., ''2-space indentation'',
+        ''tell the user'', ''user-invocable: true''). The notes are genuinely specific
+        and not generic. The activation test scenarios are realistic and the observations
+        about description terseness are well-reasoned. However, the assessment has
+        significant mismatches against the expected classifications. The expected_absent
+        list includes ''Context Budget'', ''Control Tuning'', ''Progressive Disclosure'',
+        ''Template Scaffold'', and ''Utility Bundle'', but the checker rated Context
+        Budget as ''strong'', Control Tuning as ''present'', and Progressive Disclosure,
+        Template Scaffold, and Utility Bundle as ''N/A''. For a minimal 14-line skill,
+        rating Context Budget as ''strong'' rather than absent is debatable - the
+        skill is small not because of deliberate context economy design but because
+        it''s thin. Similarly, rating Control Tuning as ''present'' for a minimal
+        skill is generous. The expected_na list is empty, meaning none should be N/A,
+        yet the checker marked three patterns as N/A. The expected_strong list is
+        empty but the checker rated one pattern as strong. These classification errors
+        are substantive - the checker is over-crediting a minimal skill. The summary
+        arithmetic (4 of 11 applicable present, 1 strong) is internally consistent
+        with its own ratings. The notes quality is good but the status classifications
+        don''t align well with ground truth expectations for a thin/minimal skill.'
+      value: 3
+    pattern_table_present:
+      rationale: All 14 pattern rows present
+      value: true
+    summary_line_present:
+      rationale: 4/11 present, 1 strong, 10 improvements
+      value: true
+    valid_statuses:
+      rationale: 14 statuses all valid
+      value: true
+  case-003-mixed-quality-migration:
+    activation_test_present:
+      rationale: Activation test with trigger and non-trigger scenarios
+      value: true
+    assessment_quality:
+      rationale: The assessment is thorough and specific across nearly all patterns.
+        Notes reference concrete elements from the skill (e.g., specific step numbers,
+        exact bash commands, the argument-hint field, line count, specific error message
+        templates). Status classifications are generally well-justified with clear
+        reasoning for why something is 'present' vs 'strong' (e.g., Execution Checklist
+        is 'present' because completion criteria are missing for Steps 1 and 5, despite
+        having five numbered steps with halt conditions). The activation test scenarios
+        are realistic and the non-trigger scenario ('Write a new migration file for
+        adding a users table') tests a genuine boundary condition.\n\nHowever, there
+        are notable discrepancies with expected classifications that prevent a score
+        of 5:\n\n1. **Execution Checklist** was expected to be 'strong' but was rated
+        'present' — the checker's reasoning is defensible (missing completion criteria
+        for some steps), but this diverges from the expected classification.\n\n2.
+        **Plan-Validate-Execute** was expected to be 'strong' but was rated 'present'
+        — again, the reasoning about missing rollback guidance is valid but diverges
+        from expectations.\n\n3. **Utility Bundle** was expected to be 'absent' but
+        was rated 'present' — the checker notes that the scripts directory doesn't
+        exist and there's no error handling for a missing script, which arguably should
+        push this to 'absent' rather than 'present'.\n\n4. **Progressive Disclosure**
+        was expected to be 'absent' but was marked 'N/A' — this is a reasonable judgment
+        call given the skill's size, though the expected classification differs.\n\nThe
+        checker correctly identified In-Skill Examples as absent and Autonomy Calibration
+        as strong, matching expectations. The summary arithmetic (10 of 13 applicable,
+        3 strong) is consistent with the table. The notes are actionable and specific
+        enough to guide improvements, but the misalignment on several expected classifications
+        (especially Utility Bundle and the two expected-strong patterns) keeps this
+        from reaching expert-level (5).
+      value: 4
+    pattern_table_present:
+      rationale: All 14 pattern rows present
+      value: true
+    summary_line_present:
+      rationale: 10/13 present, 3 strong, 10 improvements
+      value: true
+    valid_statuses:
+      rationale: 14 statuses all valid
+      value: true
+  case-004-readonly-analysis-skill:
+    activation_test_present:
+      rationale: Activation test with trigger and non-trigger scenarios
+      value: true
+    assessment_quality:
+      rationale: 'The assessment is thorough and well-structured with all 14 patterns
+        evaluated. Notes are specific and actionable, referencing concrete elements
+        from the skill (e.g., ''4 trigger phrases'', ''argument-hint with threshold
+        flag syntax'', naming adjacent skills ''refactor:suggest'' and ''test:coverage'',
+        ''cognitive complexity weighting'' vagueness, ''75 lines'', ''4-tool allowlist'').
+        Status classifications are generally well-justified with clear reasoning for
+        strong vs present distinctions (e.g., Template Scaffold is ''present'' not
+        ''strong'' because there''s no filled example, Context Budget is ''present''
+        not ''strong'' because of no size limits). The N/A classifications for Self-Correcting
+        Loop and Plan-Validate-Execute are correctly applied and well-reasoned for
+        a read-only analysis skill. Activation test scenarios are realistic and the
+        non-trigger scenarios directly map to the exclusion clauses. The summary arithmetic
+        (8 of 11 applicable present, 4 strong) is correct. However, there are some
+        discrepancies with the expected classifications: Exclusion Clause is marked
+        ''strong'' when expected absent, Template Scaffold is marked ''present'' when
+        expected strong, and Utility Bundle is marked ''absent'' when expected N/A.
+        The Utility Bundle classification is debatable — the checker argues deterministic
+        complexity counting would benefit from a script, which is a reasonable interpretation
+        even if N/A could also be justified. The Exclusion Clause being marked strong
+        when expected absent suggests the checker found evidence the test author didn''t
+        expect, which could be correct if the skill actually contains exclusion clauses.
+        These classification disagreements prevent a score of 5, but the depth of
+        analysis, specificity of notes, and the nuanced observation about ''find complex
+        functions'' potentially matching grep intent demonstrate strong analytical
+        quality.'
+      value: 4
+    pattern_table_present:
+      rationale: All 14 pattern rows present
+      value: true
+    summary_line_present:
+      rationale: 8/11 present, 4 strong, 7 improvements
+      value: true
+    valid_statuses:
+      rationale: 14 statuses all valid
+      value: true
+  case-005-subtle-present-vs-strong:
+    activation_test_present:
+      rationale: Activation test with trigger and non-trigger scenarios
+      value: true
+    assessment_quality:
+      rationale: 'The assessment is thorough with specific, evidence-based notes referencing
+        concrete line numbers (line 17, line 106), exact quoted content (trigger phrases,
+        argument-hint), specific thresholds (>1000 lines, 30-line function), and tool
+        names. Status classifications are well-justified with clear reasoning for
+        each rating. The activation test scenarios are realistic and include genuine
+        boundary conditions (commit review vs PR review, action request vs review
+        request). The observation about the exclusion clause living in the body rather
+        than the description field is a nuanced, actionable insight. However, there
+        are some discrepancies with expectations: (1) Execution Checklist is rated
+        ''present'' when expected ''strong'' - though the justification for ''present''
+        is reasonable (implicit dependency chains, missing completion criteria), this
+        is a borderline call that could go either way. (2) Progressive Disclosure
+        and Self-Correcting Loop are marked N/A but the expected_na list is empty,
+        suggesting at least some of these should have been classified differently
+        (expected_absent includes Progressive Disclosure, which the checker marked
+        N/A instead). (3) The summary says ''9 of 10 applicable patterns'' but the
+        arithmetic could be debated given the N/A classifications. The notes are specific
+        and actionable throughout, with concrete improvement suggestions (e.g., missing
+        pitfalls about generated/vendored files, binary files in diffs). The borderline
+        classification handling between present and strong is generally well-reasoned,
+        though not always perfectly aligned with the expected classifications.'
+      value: 4
+    pattern_table_present:
+      rationale: All 14 pattern rows present
+      value: true
+    summary_line_present:
+      rationale: 9/10 present, 4 strong, 6 improvements
+      value: true
+    valid_statuses:
+      rationale: 14 statuses all valid
+      value: true
+run_id: 2026-05-12-opus-v2
+run_metrics:
+  cache_hit_rate: 0.635155
+  cost_per_mtok_usd: 3.3482
+  cost_per_turn_usd: 0.138333
+  output_tokens_per_turn: 1406.58

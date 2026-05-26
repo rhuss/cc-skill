@@ -1,0 +1,10 @@
+handlers:
+- match: Questions asked to the user via AskUserQuestion (apply/skip choice).
+  patterns:
+  - AskUserQuestion
+  prompt: 'Always choose "Apply" to write the enhanced skill to disk.
+
+    This ensures the modified file is captured for judge evaluation.
+
+    '
+hook_model: claude-sonnet-4-6
