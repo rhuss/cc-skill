@@ -17,7 +17,7 @@
 
 **Purpose**: Prepare the README structure for the new section
 
-- [ ] T001 Read current README.md and identify insertion point after "How the Enhancer Works" section in README.md
+- [x] T001 Read current README.md and identify insertion point after "How the Enhancer Works" section in README.md
 
 ---
 
@@ -29,8 +29,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Add "Measuring Skill Improvement" heading and prerequisites paragraph to README.md
-- [ ] T003 [US1] Write the 6-step workflow list with descriptions of each step and which plugin provides it in README.md
+- [x] T002 [US1] Add "Measuring Skill Improvement" heading and prerequisites paragraph to README.md
+- [x] T003 [US1] Write the 6-step workflow list with descriptions of each step and which plugin provides it in README.md
 
 **Checkpoint**: A user can read and understand the workflow steps
 
@@ -44,10 +44,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Write the walkthrough introduction and describe the example skill (a hypothetical code-review skill with weak patterns) in README.md
-- [ ] T005 [US2] Write Steps 1-3 of the walkthrough (eval-analyze, eval-dataset, eval-run baseline) with sample commands and representative output in README.md
-- [ ] T006 [US2] Write Step 4 of the walkthrough (skill:enhance) with sample command and representative output showing patterns improved in README.md
-- [ ] T007 [US2] Write Steps 5-6 of the walkthrough (eval-run enhanced, compare results) with sample commands and before/after score comparison in README.md
+- [x] T004 [US2] Write the walkthrough introduction and describe the example skill (a hypothetical code-review skill with weak patterns) in README.md
+- [x] T005 [US2] Write Steps 1-3 of the walkthrough (eval-analyze, eval-dataset, eval-run baseline) with sample commands and representative output in README.md
+- [x] T006 [US2] Write Step 4 of the walkthrough (skill:enhance) with sample command and representative output showing patterns improved in README.md
+- [x] T007 [US2] Write Steps 5-6 of the walkthrough (eval-run enhanced, compare results) with sample commands and before/after score comparison in README.md
 
 **Checkpoint**: The walkthrough shows all 6 steps with realistic commands and output
 
@@ -61,7 +61,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Write "Choosing Judges" subsection recommending structural, behavioral, and improvement delta judge categories in README.md
+- [x] T008 [US3] Write "Choosing Judges" subsection recommending structural, behavioral, and improvement delta judge categories in README.md
 
 **Checkpoint**: Users can select appropriate judges for their skill evaluation
 
@@ -71,9 +71,9 @@
 
 **Purpose**: Edge cases, final review, and consistency
 
-- [ ] T009 Write "Tips" subsection covering edge cases (already-optimal skills, score decreases) in README.md
-- [ ] T010 Review full new section for consistency with existing README tone and heading hierarchy in README.md
-- [ ] T011 Update brainstorm/01-skill-eval.md status from "active" to "spec-created" with spec path reference
+- [x] T009 Write "Tips" subsection covering edge cases (already-optimal skills, score decreases) in README.md
+- [x] T010 Review full new section for consistency with existing README tone and heading hierarchy in README.md
+- [x] T011 Update brainstorm/01-skill-eval.md status from "active" to "spec-created" with spec path reference
 
 ---
 
