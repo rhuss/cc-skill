@@ -1,0 +1,16 @@
+description: >
+  A database migration skill with mixed pattern quality. Some patterns are
+  strong (execution checklist, plan-validate-execute), some present but weak
+  (activation metadata with vague description), and some absent (no examples,
+  no gotchas). Tests the checker's ability to distinguish present from strong
+  and catch subtle weaknesses.
+expected_strong:
+  - Execution Checklist
+  - Plan-Validate-Execute
+  - Autonomy Calibration
+expected_absent:
+  - In-Skill Examples
+  - Utility Bundle
+  - Progressive Disclosure
+expected_na: []
+min_patterns_present: 8

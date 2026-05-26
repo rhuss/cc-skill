@@ -1,0 +1,146 @@
+judges:
+  enhancement_quality:
+    mean: 3.4
+    pass_rate: null
+  frontmatter_preserved:
+    mean: 1.0
+    pass_rate: 1.0
+  proportionate_enhancement:
+    mean: 1.0
+    pass_rate: 1.0
+  skill_modified:
+    mean: 1.0
+    pass_rate: 1.0
+  status_change_table:
+    mean: 1.0
+    pass_rate: 1.0
+per_case:
+  case-001-many-absent-patterns:
+    enhancement_quality:
+      rationale: 'Score: 5
+
+
+        Rationale: This is an expert-level enhancement. Every pattern improvement
+        is specific, domain-appropriate, and actionable:
+
+
+        **Activation Metadata**: The description now includes concrete tri'
+      value: 5
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 45 -> 87 lines (1.9x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (3617 chars)
+      value: true
+    status_change_table:
+      rationale: 10 patterns improved
+      value: true
+  case-002-present-to-strong:
+    enhancement_quality:
+      rationale: Expert-level enhancement. Every pattern improvement is specific and
+        domain-grounded. Known Gotchas name real YAML validation pitfalls (type coercion,
+        nested validation). Examples use realistic invocations. The filled template
+        demonstrates a concrete failing report. Explain-the-Why rationale is specific
+        to config validation workflows, not generic. Exclusion clause names exact
+        adjacent tasks. Autonomy calibration justifies tool restrictions with read-only
+        risk reasoning. Skill intent, voice, and structure are fully preserved. What
+        Changed table accurately describes all modifications. No bloat or filler anywhere.
+      value: 5
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 85 -> 69 lines (0.8x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (1913 chars)
+      value: true
+    status_change_table:
+      rationale: 10 patterns improved
+      value: true
+  case-003-short-proportionate:
+    enhancement_quality:
+      rationale: The actual written SKILL.md file is essentially unchanged from the
+        original - it lacks the enhancements described in the conversation output
+        (no argument-hint, no exclusion clause, no concrete example, no refined definitions).
+        The enhancement was described but not applied. Additionally, the enhancer
+        added an Exclusion Clause in its proposed version, which is one of the expected_absent_patterns
+        - meaning even if it had been written, it would violate the test constraints.
+        The Status Change table claims 4 strong improvements but the actual file supports
+        none of them. This amounts to cosmetic-only changes at the file level with
+        inaccurate claims of improvement.
+      value: 2
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 20 -> 25 lines (1.2x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (427 chars)
+      value: true
+    status_change_table:
+      rationale: 4 patterns improved
+      value: true
+  case-004-nearly-optimal:
+    enhancement_quality:
+      rationale: The case expected 0 improvements (nearly-optimal skill), but the
+        enhancer claimed 3 pattern improvements without triggering the already-optimal
+        detection path. Worse, there is a discrepancy between what was described in
+        the conversation output (two examples, 'Before proceeding' checkpoints, timeout
+        rationales) and what was actually written to the _modified/target-skill/SKILL.md
+        file, which is missing most of these claimed enhancements. The written file
+        closely resembles the original with only minor differences. The Status Change
+        table claims 3 patterns moved from 'present' to 'strong' but the actual written
+        file doesn't support these claims. While the enhancements described in the
+        conversation were domain-appropriate and reasonable in quality, the failure
+        to correctly assess the skill as nearly-optimal and the mismatch between claimed
+        and actual changes significantly undermines the output quality.
+      value: 2
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 120 -> 120 lines (1.0x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (4091 chars)
+      value: true
+    status_change_table:
+      rationale: 3 patterns improved
+      value: true
+  case-005-file-modifier-missing-safety:
+    enhancement_quality:
+      rationale: 'The enhancement made real, domain-appropriate improvements to multiple
+        patterns: Plan-Validate-Execute (preview/confirm gate), Exclusion Clause (specific
+        adjacent tasks), Known Gotchas (shebang handling with explanation), and Control
+        Tuning (halt conditions). However, Self-Correcting Loop was explicitly expected
+        but completely missing — there''s no post-write verification that headers
+        were actually inserted correctly, which is important for a file-modification
+        skill. Known Gotchas coverage is partial (shebang addressed but binary files
+        omitted). The _modified/target-skill/SKILL.md contains the original rather
+        than the enhanced version. The improvements that were made are solid and specific,
+        but the significant gap on Self-Correcting Loop and incomplete gotcha coverage
+        prevent a higher score.'
+      value: 3
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 55 -> 63 lines (1.1x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (1605 chars)
+      value: true
+    status_change_table:
+      rationale: 8 patterns improved
+      value: true
+run_id: enhance-opt-iter-3
+run_metrics:
+  cache_hit_rate: 0.757076
+  cost_per_mtok_usd: 2.6001
+  cost_per_turn_usd: 0.118
+  output_tokens_per_turn: 1411.6

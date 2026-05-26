@@ -1,0 +1,201 @@
+name: cc-skill-enhancer
+description: Evaluate the skill:enhance command that improves SKILL.md files by applying missing authoring patterns
+skill: skill:enhance
+
+execution:
+  mode: case
+  arguments: "{skill_path}"
+  timeout: 600
+
+runner:
+  type: claude-code
+  plugin_dirs:
+    - skill
+
+models:
+  skill: claude-opus-4-6
+  judge: claude-opus-4-6
+  hook: claude-sonnet-4-6
+
+permissions:
+  allow:
+    - "Skill"
+    - "Edit(*)"
+    - "Write(*)"
+    - "AskUserQuestion"
+  deny: []
+
+mlflow:
+  experiment: cc-skill-enhancer-eval
+
+dataset:
+  path: eval/enhancer-cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: YAML file with 'skill_path' (path to the SKILL.md file
+      to enhance, relative to the workspace root).
+    - target-skill/SKILL.md: The actual SKILL.md file to be enhanced. Must
+      be present at the path specified by 'skill_path'.
+    - annotations.yaml: Expected evaluation metadata including:
+      - 'expected_absent_patterns' (list of patterns expected to be absent
+        in the baseline evaluation, i.e. enhancement targets)
+      - 'expected_improvements' (minimum number of patterns that should
+        improve from absent/present to strong)
+      - 'skill_line_count' (approximate line count, to verify proportionate
+        enhancement)
+      - 'description' (human-readable description of what this case exercises)
+    - answers.yaml: Guidance for the AskUserQuestion hook. The enhancer
+      asks "Apply or Skip" at the end. The answers file should instruct
+      the LLM to always choose "Apply" during eval so the modified file
+      is captured.
+
+inputs:
+  tools:
+    - match: Questions asked to the user via AskUserQuestion (apply/skip choice).
+      prompt: |
+        Always choose "Apply" to write the enhanced skill to disk.
+        This ensures the modified file is captured for judge evaluation.
+
+outputs:
+  - path: output
+    schema: |
+      The enhancer modifies the input SKILL.md file in-place via Edit/Write
+      tools. Judges should use outputs["modified_files"] to access the
+      enhanced SKILL.md content, and outputs["conversation"] for the full
+      enhancement report including:
+      - Steps Executed log (which steps ran, which were skipped)
+      - Enhanced Skill section (full rewritten SKILL.md text)
+      - What Changed table (pattern applied, change made, reasoning)
+      - Status Change table (pattern, before status, after status)
+      - Summary line (X patterns improved, Y new files proposed)
+
+traces:
+  stdout: true
+  stderr: true
+  events: true
+  metrics: true
+
+judges:
+  - name: skill_modified
+    description: |
+      Checks that the enhancer actually wrote a modified SKILL.md file.
+    check: |
+      modified = outputs.get("modified_files", {})
+      skill_files = [k for k in modified if k.endswith("SKILL.md")]
+      if not skill_files:
+          return (False, "No SKILL.md was modified")
+      content = modified[skill_files[0]]
+      if len(content.strip()) < 50:
+          return (False, f"Modified SKILL.md too short ({len(content.strip())} chars)")
+      return (True, f"SKILL.md modified ({len(content)} chars)")
+
+  - name: frontmatter_preserved
+    description: |
+      Checks that the enhanced SKILL.md preserves YAML frontmatter with
+      name and description fields from the original.
+    check: |
+      import re
+      modified = outputs.get("modified_files", {})
+      skill_files = [k for k in modified if k.endswith("SKILL.md")]
+      if not skill_files:
+          return (False, "No SKILL.md was modified")
+      content = modified[skill_files[0]]
+      fm_match = re.search(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
+      if not fm_match:
+          return (False, "No YAML frontmatter found in enhanced skill")
+      fm = fm_match.group(1)
+      has_name = re.search(r'^name:', fm, re.MULTILINE)
+      has_desc = re.search(r'^description:', fm, re.MULTILINE)
+      if not has_name:
+          return (False, "Frontmatter missing 'name' field")
+      if not has_desc:
+          return (False, "Frontmatter missing 'description' field")
+      return (True, "Frontmatter preserved with name and description")
+
+  - name: status_change_table
+    description: |
+      Checks that the conversation output contains a Status Change table
+      showing which patterns improved.
+    check: |
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      if "Status Change" not in text:
+          return (False, "No Status Change table found")
+      import re
+      rows = re.findall(r'\|\s*\w+.*?\|\s*(absent|present)\s*\|\s*(strong|present)\s*\|', text)
+      if not rows:
+          return (False, "Status Change table has no improvement rows")
+      return (True, f"{len(rows)} patterns improved")
+
+  - name: proportionate_enhancement
+    description: |
+      Checks that the enhancement doesn't bloat a small skill. A skill
+      under 100 lines should not become more than 3x its original size.
+    check: |
+      modified = outputs.get("modified_files", {})
+      annotations = outputs.get("annotations", {})
+      skill_files = [k for k in modified if k.endswith("SKILL.md")]
+      if not skill_files:
+          return (False, "No SKILL.md was modified")
+      content = modified[skill_files[0]]
+      new_lines = len(content.strip().split('\n'))
+      original_lines = annotations.get("skill_line_count", 100)
+      ratio = new_lines / max(original_lines, 1)
+      if original_lines < 100 and ratio > 3.0:
+          return (False, f"Bloated: {original_lines} -> {new_lines} lines ({ratio:.1f}x)")
+      if ratio > 5.0:
+          return (False, f"Excessive growth: {original_lines} -> {new_lines} lines ({ratio:.1f}x)")
+      return (True, f"{original_lines} -> {new_lines} lines ({ratio:.1f}x)")
+
+  - name: enhancement_quality
+    description: |
+      LLM judge that evaluates whether the enhancement meaningfully
+      improved the skill without changing its intent or over-engineering.
+    prompt: |
+      You are evaluating the output of a skill enhancement tool. The tool
+      takes a SKILL.md file, evaluates it against 14 skill-authoring
+      patterns, and produces an improved version.
+
+      Here is the enhancer's output (conversation and modified files):
+
+      {{ conversation }}
+
+      {{ outputs }}
+
+      {{ annotations }}
+
+      Evaluate on a 1-5 scale:
+
+      Score 1: Enhancement broke the skill, changed its intent, or
+        produced no meaningful improvements. Frontmatter was damaged or
+        removed.
+      Score 2: Enhancement made cosmetic changes only. Patterns were
+        "applied" by adding generic text rather than specific, actionable
+        content. The Status Change table claims improvements but the
+        actual text doesn't support them.
+      Score 3: Enhancement made real improvements to some patterns.
+        Added content is relevant to the skill's domain. But some
+        enhancements are shallow (generic gotchas, vague examples) or
+        the skill's voice/structure was noticeably altered.
+      Score 4: Enhancement meaningfully improved multiple patterns with
+        specific, domain-appropriate content. Skill intent and voice are
+        preserved. Proportionate to complexity. Steps Executed log is
+        complete. What Changed table accurately describes each change.
+      Score 5: Expert-level enhancement. Every pattern improvement adds
+        specific, actionable content grounded in the skill's domain.
+        No bloat, no generic filler. Gotchas name real mistakes with
+        mitigations. Examples use realistic scenarios. The enhanced
+        skill reads as if a domain expert rewrote it.
+
+thresholds:
+  skill_modified:
+    min_pass_rate: 1.0
+  frontmatter_preserved:
+    min_pass_rate: 1.0
+  status_change_table:
+    min_pass_rate: 1.0
+  proportionate_enhancement:
+    min_pass_rate: 1.0
+  enhancement_quality:
+    min_mean: 3.5

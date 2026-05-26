@@ -1,0 +1,159 @@
+judges:
+  enhancement_quality:
+    mean: 4.4
+    pass_rate: null
+  frontmatter_preserved:
+    mean: 1.0
+    pass_rate: 1.0
+  proportionate_enhancement:
+    mean: 1.0
+    pass_rate: 1.0
+  skill_modified:
+    mean: 1.0
+    pass_rate: 1.0
+  status_change_table:
+    mean: 0.8
+    pass_rate: 0.8
+per_case:
+  case-001-many-absent-patterns:
+    enhancement_quality:
+      rationale: Strong domain-appropriate enhancements across 10 patterns with specific,
+        actionable content. Exclusion clauses, gotchas (multiline stack traces, timestamp
+        mismatches), and in-skill examples (NullPointerException, ECONNREFUSED) are
+        all realistic and well-reasoned. Explain-the-Why additions demonstrate genuine
+        log analysis expertise. However, the actual _modified/target-skill/SKILL.md
+        file contains the original unchanged skill rather than the enhanced version,
+        which is a notable implementation gap. The expected Self-Correcting Loop pattern
+        was not addressed. The enhanced content in the conversation output is expert-quality
+        but the delivery mechanism failed.
+      value: 4
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 45 -> 35 lines (0.8x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (693 chars)
+      value: true
+    status_change_table:
+      rationale: 10 patterns improved
+      value: true
+  case-002-present-to-strong:
+    enhancement_quality:
+      rationale: 'Score: 5
+
+
+        Rationale: The enhancement is expert-level across every dimension. Each of
+        the 8 pattern improvements adds specific, domain-grounded content rather than
+        generic filler:
+
+
+        **Exclusion Clause**'
+      value: 5
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 85 -> 69 lines (0.8x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (1913 chars)
+      value: true
+    status_change_table:
+      rationale: 8 patterns improved
+      value: true
+  case-003-short-proportionate:
+    enhancement_quality:
+      rationale: 'Score: 4
+
+
+        Rationale: The enhancement meaningfully improved multiple patterns with domain-appropriate
+        content. The skill''s intent is fully preserved, and the enhancements are
+        specific rather than gener'
+      value: 4
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 20 -> 37 lines (1.9x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (978 chars)
+      value: true
+    status_change_table:
+      rationale: 7 patterns improved
+      value: true
+  case-004-nearly-optimal:
+    enhancement_quality:
+      rationale: The enhancer correctly identified that this skill is already well-crafted
+        and applies nearly all 14 patterns effectively. It provided a thorough, pattern-by-pattern
+        assessment with specific evidence from the skill text (e.g., citing exact
+        trigger verbs for Activation Metadata, noting the exclusion of perf:load and
+        test:create for Exclusion Clause, identifying the sequential execution rationale
+        for Explain-the-Why). The non-applicable patterns were justified with reasonable
+        explanations. The skill was left unchanged, which is the correct decision
+        for a near-optimal skill with expected_improvements of 0. The SKILL.md file
+        in _modified is identical to the original, preserving intent, voice, and frontmatter.
+        The only reason I don't give a 5 is that while the analysis is thorough, one
+        could argue there were minor opportunities (e.g., Pattern 4 Progressive Disclosure
+        was dismissed solely on line count, but could apply based on complexity; the
+        Error Handling table at the end could potentially be better integrated). However,
+        recognizing an already-strong skill and not introducing bloat is itself a
+        sign of quality judgment.
+      value: 4
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 120 -> 120 lines (1.0x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (4091 chars)
+      value: true
+    status_change_table:
+      rationale: No Status Change table found
+      value: false
+  case-005-file-modifier-missing-safety:
+    enhancement_quality:
+      rationale: 'The enhancement is excellent across all dimensions. All four expected
+        absent patterns (Plan-Validate-Execute, Self-Correcting Loop, Known Gotchas,
+        Exclusion Clause) were correctly identified and added with domain-specific,
+        actionable content. Plan-Validate-Execute: Added Step 4 (Preview Changes)
+        with a concrete summary template and explicit approval gate before any file
+        modifications—perfectly appropriate for a bulk file modifier. Self-Correcting
+        Loop: Added Step 6 (Verify Insertions) that re-reads a sample of modified
+        files to confirm correct header placement, with failure reporting. Known Gotchas:
+        The shebang handling is a genuinely important domain-specific pitfall with
+        a clear mitigation (''insert after, not before''). Exclusion Clause: The description
+        now explicitly excludes generating standalone LICENSE files, removing headers,
+        and validating compliance—all realistic adjacent tasks that could be misrouted.
+        Additional improvements are also strong: Context Budget adds a >200 file threshold
+        with user confirmation, Explain-the-Why provides real reasons (e.g., ''tedious
+        to reverse manually'', ''breaks script execution''), Template Scaffold adds
+        a filled example output, and the error handling table is expanded with all
+        halt conditions. The skill''s intent and voice are fully preserved—it''s still
+        clearly a license header inserter with the same tool restrictions and structure.
+        Frontmatter is intact and appropriately enhanced (description expanded with
+        exclusion clause). The What Changed table accurately reflects every modification
+        with correct pattern attributions. The Status Change table is honest. No bloat
+        or generic filler was introduced.'
+      value: 5
+    frontmatter_preserved:
+      rationale: Frontmatter preserved with name and description
+      value: true
+    proportionate_enhancement:
+      rationale: 55 -> 63 lines (1.1x)
+      value: true
+    skill_modified:
+      rationale: SKILL.md modified (1605 chars)
+      value: true
+    status_change_table:
+      rationale: 10 patterns improved
+      value: true
+run_id: enhance-opt-iter-2
+run_metrics:
+  cache_hit_rate: 0.794733
+  cost_per_mtok_usd: 2.2992
+  cost_per_turn_usd: 0.1045
+  output_tokens_per_turn: 1221.8

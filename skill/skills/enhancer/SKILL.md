@@ -130,7 +130,9 @@ Using `BASELINE_STATUS`, select which patterns to address:
 
 For each targeted pattern, retrieve its "Improvement guidance" section from the knowledge file. This guidance directs the specific changes to make.
 
-**Minimum improvement threshold**: When the skill scores below 70% (fewer than 70% of applicable patterns are "strong"), address at least 2 patterns. This ensures meaningful improvement rather than cosmetic changes.
+**Proportionality gate**: For very short skills (under ~30 lines or fewer than 5 applicable patterns), only target patterns that are clearly absent and relevant to the skill's scope. A 20-line utility does not need an Exclusion Clause, Explain-the-Why rationale for every line, or Known Gotchas unless the domain genuinely has non-obvious pitfalls. Skip conditional patterns whose applicability conditions are borderline for a skill this small. The goal is to make the skill better at what it does, not to inflate it with patterns it does not need.
+
+**Minimum improvement threshold**: For skills with 5 or more applicable patterns that score below 70% (fewer than 70% of applicable patterns are "strong"), address at least 2 patterns. This ensures meaningful improvement rather than cosmetic changes. This threshold does not apply to skills caught by the proportionality gate above.
 
 ### Step 6: Rewrite
 
@@ -148,7 +150,7 @@ Produce an enhanced version of `SKILL_CONTENT` that applies the targeted pattern
 
 The most common enhancement mistake is changing a skill's intent while restructuring it. If you find yourself adding new workflow steps, requiring new inputs, or altering what the skill produces, you have drifted from enhancement into redesign. Compare your rewrite against the original's purpose statement before proceeding.
 
-A second pitfall is over-enhancing simple skills. A 50-line skill that becomes 200 lines has not been improved; it has been burdened. Add only what the missing patterns require, nothing more. If a pattern can be addressed with one sentence inline, do not add an entire section.
+A second pitfall is over-enhancing simple skills. A 50-line skill that becomes 200 lines has not been improved; it has been burdened. Add only what the missing patterns require, nothing more. If a pattern can be addressed with one sentence inline, do not add an entire section. For very short skills (under ~30 lines), limit enhancements to improving the frontmatter (description, argument-hint) and at most 1-2 inline additions. A 20-line utility that becomes 60 lines has tripled in complexity for marginal benefit.
 
 **Writing constraints**:
 - No em-dashes or en-dashes. Use commas, parentheses, or separate sentences.

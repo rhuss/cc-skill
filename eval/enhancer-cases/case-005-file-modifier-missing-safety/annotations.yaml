@@ -1,0 +1,14 @@
+description: >
+  A license header inserter that modifies source files but has no
+  preview/approval gate and no post-write validation. Tests whether
+  the enhancer adds Plan-Validate-Execute (approval before modifying
+  files) and Self-Correcting Loop (verify the header was inserted
+  correctly). Also missing Known Gotchas for common pitfalls like
+  binary files and shebangs.
+expected_absent_patterns:
+  - Plan-Validate-Execute
+  - Self-Correcting Loop
+  - Known Gotchas
+  - Exclusion Clause
+expected_improvements: 3
+skill_line_count: 55

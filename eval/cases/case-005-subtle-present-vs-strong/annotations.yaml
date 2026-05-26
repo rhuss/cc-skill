@@ -1,0 +1,14 @@
+description: >
+  A PR review skill where several patterns hover at the present/strong boundary.
+  The activation metadata has trigger verbs but no exclusion in the description
+  field (only in the body). Error handling exists but misses non-obvious cases.
+  The template scaffold shows structure but has no filled example. Tests the
+  checker's judgment on borderline classifications.
+expected_strong:
+  - Execution Checklist
+  - Autonomy Calibration
+expected_absent:
+  - Utility Bundle
+  - Progressive Disclosure
+expected_na: []
+min_patterns_present: 10

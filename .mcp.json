@@ -1,0 +1,98 @@
+{
+  "mcpServers": {
+    "google-private": {
+      "autoApprove": [
+        "list_script_projects",
+        "get_script_project",
+        "list_spaces",
+        "get_messages",
+        "search_messages",
+        "list_contacts",
+        "search_docs",
+        "get_doc_content",
+        "list_docs_in_folder",
+        "create_doc",
+        "insert_doc_elements",
+        "insert_doc_image",
+        "inspect_doc_structure",
+        "export_doc_to_pdf",
+        "read_document_comments",
+        "reply_to_document_comment",
+        "get_drive_file_content",
+        "get_drive_file_download_url",
+        "import_to_google_doc",
+        "get_drive_file_permissions",
+        "check_drive_file_public_access",
+        "get_drive_shareable_link",
+        "batch_share_drive_file",
+        "search_gmail_messages",
+        "get_gmail_message_content",
+        "get_gmail_messages_content_batch",
+        "get_gmail_attachment_content",
+        "draft_gmail_message",
+        "get_gmail_thread_content",
+        "get_gmail_threads_content_batch",
+        "list_gmail_labels",
+        "manage_gmail_label",
+        "list_gmail_filters",
+        "modify_gmail_message_labels",
+        "batch_modify_gmail_message_labels",
+        "get_search_engine_info",
+        "search_custom_siterestrict",
+        "list_spreadsheets",
+        "get_spreadsheet_info",
+        "read_sheet_values",
+        "read_spreadsheet_comments",
+        "get_presentation",
+        "get_page",
+        "get_page_thumbnail",
+        "read_presentation_comments",
+        "list_task_lists",
+        "get_task_list",
+        "update_task_list",
+        "list_tasks",
+        "get_task",
+        "create_task",
+        "update_task",
+        "move_task",
+        "clear_completed_tasks"
+      ],
+      "type": "http",
+      "url": "https://mcp-google-private.int-tichny.org:8443/mcp"
+    },
+    "google-work": {
+      "autoApprove": [
+        "*"
+      ],
+      "type": "http",
+      "url": "https://mcp-google-work.int-tichny.org:8443/mcp"
+    },
+    "jira-redhat-old": {
+      "autoApprove": [
+        "*"
+      ],
+      "headers": {
+        "Authorization": "Basic bWNwOmlJOTF3OHg4UXdycWVBbnlrMmRK"
+      },
+      "type": "http",
+      "url": "https://mcp-jira.int-tichny.org:8443/mcp"
+    },
+    "readwise": {
+      "autoApprove": [
+        "*"
+      ],
+      "headers": {
+        "Authorization": "Token vauXnECbxfufJcRJo9e43fDfRI5DWnuJw8k7VHgGdjlqrFE5n9"
+      },
+      "type": "http",
+      "url": "https://mcp-readwise.int-tichny.org:8443/mcp"
+    },
+    "slack-redhat": {
+      "headers": {
+        "Authorization": "Basic bWNwOjdiNjhlMjhlM2I0YzEwODg0Yjk1NjViYjFmMmE1Y2My"
+      },
+      "type": "sse",
+      "url": "https://mcp-slack.int-tichny.org:8443/sse"
+    }
+  }
+}
