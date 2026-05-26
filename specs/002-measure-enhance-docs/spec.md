@@ -64,7 +64,7 @@ A skill author has completed the workflow but wants to know which eval judges ar
 
 ### Functional Requirements
 
-- **FR-001**: README MUST contain a new section titled "Measuring Skill Improvement" (or similar) documenting the measure-enhance-measure workflow.
+- **FR-001**: README MUST contain a new section titled "Measuring Skill Improvement" documenting the measure-enhance-measure workflow.
 - **FR-002**: The workflow section MUST list all 6 steps in order, identifying which plugin provides each step.
 - **FR-003**: The workflow section MUST include the prerequisite of having both cc-skill and agent-eval-harness plugins installed.
 - **FR-004**: The README MUST include a concrete walkthrough showing the full workflow applied to a real skill, with representative command invocations and sample output for each step.
@@ -79,7 +79,7 @@ A skill author has completed the workflow but wants to know which eval judges ar
 - **SC-001**: A user with both plugins installed can follow the documented workflow end-to-end without consulting external documentation.
 - **SC-002**: The walkthrough example covers all 6 steps with representative output at each step.
 - **SC-003**: The judges guidance section recommends at least 3 specific judge categories relevant to skill quality evaluation.
-- **SC-004**: The new README section integrates naturally with the existing README structure and does not duplicate content already present.
+- **SC-004**: The new README section follows the existing README's heading hierarchy and tone, and does not duplicate content already present.
 
 ## Assumptions
 
