@@ -1,17 +1,20 @@
 # Brainstorm Overview
 
-Last updated: 2026-05-04
+Last updated: 2026-05-26
 
 ## Sessions
 
 | # | Date | Topic | Status | Spec |
 |---|------|-------|--------|------|
-| 01 | 2026-05-04 | skill-eval | spec-created | 001 |
+| 01 | 2026-05-04 | skill-eval | active | - |
+| 02 | 2026-05-11 | 9-principles | open | - |
 
 ## Open Threads
-- Should the documentation include recommended judges tuned for skill quality evaluation? (from #01)
-- Could a future harness "eval profiles" feature let this plugin ship skill-specific eval config as data? (from #01)
-- Would shipping a sample eval.yaml for evaluating skill:check/skill:enhance be valuable? (from #01)
+- Which real skill to use for the measure-enhance-measure walkthrough example? (from #01)
+- Should the walkthrough show actual judge output or simplified/representative output? (from #01)
+- Should we add all 9 principles, or only the 3 genuinely new ones (P3, P5, P7)? (from #02)
+- Separate principle evaluation layer vs. augmenting existing patterns? (from #02)
+- Should the enhancer attempt to fix principle gaps, or only flag them? (from #02)
 
 ## Parked Ideas
 (none)
