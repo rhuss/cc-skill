@@ -1,7 +1,7 @@
 # Brainstorm: Skill Evaluation and Enhancement Measurement
 
 **Date:** 2026-05-04
-**Status:** spec-created (branch: 001-eval-enhancement-docs)
+**Status:** active
 
 ## Problem Framing
 
@@ -69,3 +69,38 @@ This plugin's unique contribution is step 4. Everything else belongs to the harn
 - Should the documentation include a recommended set of judges specifically tuned for skill quality evaluation (e.g., "did the skill's error handling improve?", "is the output more actionable?")?
 - If the harness evolves its plugin API, could a future version support "eval profiles" that this plugin could ship as data (no code) for skill-specific evaluation?
 - Would it be valuable to ship a sample eval.yaml in this plugin's repo as a reference for users who want to evaluate skill:check or skill:enhance themselves?
+
+---
+
+## Revisit: 2026-05-26
+
+### Updated Problem Framing
+
+The original decision (Approach C, documentation-only) was correct but never implemented. The documentation for the measure-enhance-measure workflow still needs to be written. Additionally, the focus has shifted: rather than evaluating cc-skill's own skills, the primary use case is helping users measure how much skill:enhance improves *their* skills. Both plugins (cc-skill and agent-eval-harness) can be assumed installed.
+
+### Approaches Reconsidered
+
+The three original approaches were revisited. More complex options (shipping eval configs, building orchestration skills, designing eval profile patterns) were considered and rejected as overengineering. The documentation approach remains the right call since the harness already provides the full eval pipeline and cc-skill's only contribution is the enhancement step.
+
+### Updated Decision
+
+Implement the original Approach C decision: write the documentation. Specifically:
+
+**Deliverable:** A new section in cc-skill's README documenting the measure-enhance-measure workflow.
+
+**Contents:**
+1. The 6-step workflow: eval-analyze, eval-dataset, eval-run (baseline), skill:enhance, eval-run (enhanced), compare
+2. Prerequisites (both plugins installed)
+3. A concrete walkthrough showing the full loop on a real skill, with sample output at each step
+4. Notes on which judges are useful for measuring skill quality improvement
+
+**Out of scope:**
+- No new skills or code in cc-skill
+- No shipped eval.yaml or eval configs
+- No changes to agent-eval-harness
+- Not evaluating cc-skill's own skills (separate concern)
+
+### Open Questions
+
+- Which real skill to use for the walkthrough example?
+- Should the walkthrough show actual judge output, or simplified/representative output?
