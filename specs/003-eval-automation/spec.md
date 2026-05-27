@@ -74,11 +74,12 @@ A user who ran `/skill:measure` or the comparison script wants to understand the
 - **FR-006**: The plugin MUST provide a `scripts/compare-runs.sh` script that compares two eval run directories.
 - **FR-007**: `compare-runs.sh` MUST read `summary.yaml` from both run directories and compute per-judge score deltas.
 - **FR-008**: `compare-runs.sh` MUST print a summary table to the terminal (stdout).
-- **FR-009**: `compare-runs.sh` MUST save a detailed markdown comparison report file.
+- **FR-009**: `compare-runs.sh` MUST save a detailed markdown comparison report file next to the second (enhanced) run directory as `comparison.md`.
 - **FR-010**: `compare-runs.sh` MUST be callable standalone, independent of the `skill:measure` skill.
 - **FR-011**: `compare-runs.sh` MUST handle mismatched judge sets between runs (showing N/A for judges present in only one run).
 - **FR-012**: `compare-runs.sh` MUST exit with a clear error if either run directory is missing summary.yaml.
 - **FR-013**: `skill:measure` MUST NOT use nested `claude -p` sessions. All skill invocations happen within the same Claude Code session.
+- **FR-014**: `skill:measure` MUST capture eval run directory paths from `/eval-run`'s conversation output (not from a hardcoded default location).
 
 ### Key Entities
 
@@ -94,6 +95,13 @@ A user who ran `/skill:measure` or the comparison script wants to understand the
 - **SC-002**: The comparison report shows per-judge deltas for 100% of judges present in either run.
 - **SC-003**: The comparison script completes in under 5 seconds for runs with up to 20 judges.
 - **SC-004**: Users can compare any two eval runs standalone via the comparison script without needing the skill.
+
+## Clarifications
+
+### Session 2026-05-27
+
+- Q: Where should the comparison report file be saved? → A: Next to the second (enhanced) run directory as `comparison.md`
+- Q: How does skill:measure locate eval run output directories? → A: Captures the run directory path from `/eval-run`'s conversation output
 
 ## Assumptions
 
