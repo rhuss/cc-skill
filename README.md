@@ -1,19 +1,52 @@
 # cc-skill
 
-A Claude Code plugin that checks SKILL.md files against 14 skill-authoring patterns and rewrites weak ones to be stronger.
+A Claude Code plugin for evaluating, enhancing, and measuring SKILL.md files against 14 skill-authoring patterns.
+
+Built on ideas from Bilgin Ibryam's ["9 Principles That Separate Useful Skills from Markdown Essays"](https://www.generativeprogrammer.com/p/9-principles-that-separate-useful) and Anthropic's ["Demystifying Evals for AI Agents"](https://www.anthropic.com/engineering/evaluating-ai-agents).
 
 ## What You Get
 
-Two commands:
+Three commands:
 
 - **`/skill:check`** scores a SKILL.md against authoring best practices and tests whether its description triggers correctly
 - **`/skill:enhance`** rewrites the skill to fill in missing patterns, preserving your original intent and voice
+- **`/skill:measure`** runs the full baseline-enhance-reeval loop in a single command and produces a comparison report
+
+## How They Relate
+
+```
+                    ┌─────────────┐
+                    │ skill:check │  Read-only evaluation
+                    └──────┬──────┘
+                           │ identifies gaps
+                           v
+                    ┌───────────────┐
+                    │ skill:enhance │  Rewrites weak patterns
+                    └──────┬────────┘
+                           │ improves skill
+                           v
+                    ┌───────────────┐
+                    │ skill:measure │  Orchestrates the full loop
+                    └──────┬────────┘
+                           │ invokes
+              ┌────────────┼────────────┐
+              v            v            v
+         /eval-run    skill:enhance   /eval-run
+        (baseline)                   (enhanced)
+              │                         │
+              └────────┬────────────────┘
+                       v
+               compare-runs.sh
+              (delta report)
+```
+
+`skill:check` and `skill:enhance` work standalone. `skill:measure` orchestrates the end-to-end measurement workflow by combining them with the [agent-eval-harness](https://github.com/opendatahub-io/agent-eval-harness) plugin.
 
 ## Installation
 
-Register the `skill/` directory as a plugin in your Claude Code settings. That's it.
+Register the `skill/` directory as a plugin in your Claude Code settings.
 
-If you also have the [prompt plugin](https://github.com/anthropics/cc-prompt) installed, both commands pick it up at runtime for deeper prompt-pattern analysis. Without it, everything works fine on its own.
+If you also have the [prompt plugin](https://github.com/anthropics/cc-prompt) installed, both check and enhance pick it up at runtime for deeper prompt-pattern analysis. Without it, everything works fine on its own.
 
 ## Usage
 
@@ -24,8 +57,11 @@ If you also have the [prompt plugin](https://github.com/anthropics/cc-prompt) in
 # Enhance a weak skill
 /skill:enhance path/to/SKILL.md
 
-# Check from conversation context (after reading a SKILL.md)
-/skill:check
+# Full measure-enhance-measure loop (requires agent-eval-harness)
+/skill:measure path/to/SKILL.md
+
+# Standalone comparison of any two eval runs
+skill/scripts/compare-runs.sh <baseline-run-dir> <enhanced-run-dir>
 ```
 
 ## The 14 Patterns
@@ -58,149 +94,107 @@ The enhancer runs the same evaluation, then rewrites the skill to address absent
 
 ## Measuring Skill Improvement
 
-You can combine cc-skill with the [agent-eval-harness](https://github.com/anthropics/agent-eval-harness) plugin to measure how much `/skill:enhance` actually improves a skill. The workflow is: measure the skill's quality, enhance it, then measure again to see what changed.
+`/skill:measure` automates the measure-enhance-measure cycle that would otherwise require 4 manual steps across two plugins. It runs entirely within a single Claude Code session (no nested `claude -p` sessions).
 
-**Prerequisites**: You need both plugins installed in your Claude Code environment. Register cc-skill's `skill/` directory and the agent-eval-harness's plugin directory in your settings. You also need at least one SKILL.md file you want to evaluate and improve.
+### Prerequisites
 
-### The Workflow
+You need two plugins installed:
 
-The measure-enhance-measure cycle has 6 steps. Steps 1-3 and 5 come from the agent-eval-harness plugin. Step 4 comes from cc-skill.
+1. **cc-skill** (this plugin) for `/skill:check`, `/skill:enhance`, and `/skill:measure`
+2. **[agent-eval-harness](https://github.com/opendatahub-io/agent-eval-harness)** for `/eval-run`, `/eval-analyze`, and `/eval-dataset`
 
-1. **Analyze the skill** (`/eval-analyze`). Point the harness at your SKILL.md. It examines the skill's structure, sub-skills, and test cases, then generates an `eval.yaml` configuration with judges, thresholds, and dataset schema.
+Your target skill also needs eval infrastructure set up. If you haven't done this yet, run `/eval-analyze` on the SKILL.md to generate `eval.yaml`, then `/eval-dataset` to create test cases.
 
-2. **Generate test cases** (`/eval-dataset`). The harness creates realistic test inputs based on the skill analysis. These are the prompts your skill will be evaluated against. Review them to make sure they cover the scenarios you care about.
+### What `/skill:measure` Does
 
-3. **Run the baseline evaluation** (`/eval-run`). The harness executes your skill against the test cases and scores the outputs with the configured judges. This produces your baseline scores, the "before" snapshot.
+Given a SKILL.md with eval infrastructure already configured:
 
-4. **Enhance the skill** (`/skill:enhance`). Run cc-skill's enhancer on the same SKILL.md. It evaluates the 14 patterns, rewrites absent and weak ones, and produces an improved version of the skill.
+1. Runs `/eval-run` to capture **baseline** scores
+2. Runs `/skill:enhance` to improve the skill
+3. Runs `/eval-run` again to capture **enhanced** scores
+4. Runs `compare-runs.sh` to compute per-judge deltas
 
-5. **Run the evaluation again** (`/eval-run`). Run the same eval configuration against the enhanced skill. This produces your "after" scores using the same judges and test cases.
+If `/skill:enhance` reports the skill is already optimal, it skips steps 3-4 and reports the baseline scores as the skill's current quality level.
 
-6. **Compare results**. Look at the score differences between the baseline run (step 3) and the enhanced run (step 5). The delta tells you exactly how much the enhancement improved your skill's quality, broken down by judge.
+### The Comparison Script
 
-### Walkthrough
+`skill/scripts/compare-runs.sh` is a standalone utility that compares any two eval run directories. It reads `summary.yaml` from each, computes per-judge score deltas, and produces:
 
-Here is the full workflow applied to a hypothetical skill. Imagine you have a `code-review` skill that provides code review guidance. It works, but the checker reports several weak or absent patterns.
+- A terminal table with baseline, enhanced, and delta columns
+- A markdown report (`comparison.md`) saved in the enhanced run directory
 
-**Step 1: Analyze the skill**
+You can use it independently of `/skill:measure`:
 
-```
-/eval-analyze path/to/code-review/SKILL.md
-```
-
-The harness reads the skill and produces an `eval.yaml` with judges configured for the skill type. You see output like:
-
-```
-Analyzed: code-review skill
-Generated: eval.yaml
-  - 3 judges configured (structural, behavioral, actionability)
-  - 5 test case schema fields defined
-  - Threshold: 0.7 average across judges
+```bash
+skill/scripts/compare-runs.sh eval/runs/run-1 eval/runs/run-2
 ```
 
-**Step 2: Generate test cases**
+Output:
 
 ```
+Judge                       Baseline   Enhanced      Delta
+-----------------------------------------------------------
+enhancement_quality            3.800      4.400     +0.600  ^
+frontmatter_preserved          1.000      1.000     +0.000  =
+status_change_table            1.000      0.800     -0.200  v
+-----------------------------------------------------------
+Summary: 1 improved, 1 regressed, 1 unchanged
+```
+
+Regressions are highlighted in the markdown report with bold **REGRESSED** markers and a warning banner.
+
+### Setting Up Eval Infrastructure
+
+If your skill doesn't have eval infrastructure yet, set it up first (one-time per skill):
+
+```bash
+# 1. Analyze the skill and generate eval.yaml
+/eval-analyze path/to/SKILL.md
+
+# 2. Generate test cases
 /eval-dataset
 ```
 
-The harness creates test inputs based on the skill analysis:
+Then run `/skill:measure path/to/SKILL.md` for the full automated loop.
 
-```
-Generated 8 test cases:
-  1. "Review this Python function for error handling issues"
-  2. "Check this React component for accessibility problems"
-  3. "Analyze this SQL query for performance concerns"
-  ...
-```
+### The Manual Workflow (Step by Step)
 
-**Step 3: Run baseline evaluation**
+If you prefer manual control over each step, or want to understand what `/skill:measure` automates:
 
-```
-/eval-run
-```
+1. **Analyze the skill** (`/eval-analyze`). Point the harness at your SKILL.md. It generates an `eval.yaml` with judges, thresholds, and dataset schema.
 
-The harness runs the skill against all test cases and scores the outputs:
+2. **Generate test cases** (`/eval-dataset`). The harness creates realistic test inputs based on the skill analysis.
 
-```
-Baseline results:
-  structural_completeness:  0.55  (missing sections in 4/8 outputs)
-  behavioral_quality:       0.62  (guidance unclear in 3/8 outputs)
-  output_actionability:     0.48  (no concrete suggestions in 5/8 outputs)
-  ──────────────────────────────
-  Average:                  0.55
-```
+3. **Run the baseline evaluation** (`/eval-run`). The harness executes your skill against test cases and scores the outputs. This is your "before" snapshot.
 
-**Step 4: Enhance the skill**
+4. **Enhance the skill** (`/skill:enhance`). Run cc-skill's enhancer on the same SKILL.md.
 
-```
-/skill:enhance path/to/code-review/SKILL.md
-```
+5. **Run the evaluation again** (`/eval-run`). Same judges, same test cases, now scoring the enhanced skill.
 
-The enhancer evaluates the 14 patterns and rewrites the skill:
-
-```
-Evaluation complete. 5 of 14 patterns need work.
-
-Patterns improved:
-  - Execution Checklist:    absent → strong (added step-by-step review flow)
-  - Template Scaffold:      absent → strong (added output template)
-  - Known Gotchas:          absent → strong (added common review pitfalls)
-  - Control Tuning:         present → strong (sharpened tone directives)
-  - In-Skill Examples:      present → strong (added before/after examples)
-
-Enhanced skill written to: path/to/code-review/SKILL.md
-```
-
-**Step 5: Re-run evaluation**
-
-```
-/eval-run
-```
-
-Same judges, same test cases, now scoring the enhanced skill:
-
-```
-Enhanced results:
-  structural_completeness:  0.88  (+0.33)
-  behavioral_quality:       0.79  (+0.17)
-  output_actionability:     0.82  (+0.34)
-  ──────────────────────────────
-  Average:                  0.83  (+0.28)
-```
-
-**Step 6: Compare**
-
-The before/after comparison shows the enhancement impact:
-
-```
-Judge                      Before   After   Delta
-─────────────────────────  ──────   ─────   ─────
-structural_completeness     0.55    0.88   +0.33
-behavioral_quality          0.62    0.79   +0.17
-output_actionability        0.48    0.82   +0.34
-─────────────────────────  ──────   ─────   ─────
-Average                     0.55    0.83   +0.28
-```
-
-The skill improved from 0.55 to 0.83 average across all judges. The biggest gains came from structural completeness and output actionability, which makes sense since the enhancer added an execution checklist and output template (both directly improve structure and actionability).
+6. **Compare results** (`compare-runs.sh`). Run the comparison script with the two run directories to see per-judge deltas.
 
 ### Choosing Judges
 
 The eval-harness supports several judge types. For measuring skill quality, three categories are most useful:
 
-**Structural completeness** (inline check judges). These verify that the skill's output contains expected elements: required sections, pattern coverage, file artifacts. They answer "did the skill produce everything it should?" Inline checks are fast, deterministic, and good for catching regressions. Use them to verify that the enhanced skill still produces all required output sections.
+**Structural completeness** (inline check judges). Verify that the skill's output contains expected elements: required sections, pattern coverage, file artifacts. Fast, deterministic, good for catching regressions.
 
-**Behavioral quality** (LLM judges). These evaluate qualitative aspects of the skill's output: clarity, actionability, tone, and whether the guidance is genuinely useful. They answer "is the output good?" LLM judges are slower but capture qualities that structural checks miss. Use them to verify that the enhancement made the skill's guidance clearer, not just longer.
+**Behavioral quality** (LLM judges). Evaluate qualitative aspects: clarity, actionability, tone. Slower but capture qualities that structural checks miss.
 
-**Improvement delta** (pairwise comparison judges). These compare outputs from two different runs side by side and score which is better. They answer "did the skill get better?" Pairwise judges are especially valuable for the measure-enhance-measure workflow because they directly measure the improvement rather than scoring each version independently.
+**Improvement delta** (pairwise comparison judges). Compare outputs from two runs side by side and score which is better. Especially valuable for the measure-enhance-measure workflow because they directly measure improvement.
 
-When setting up `/eval-analyze`, you do not need to configure all three categories. Start with structural completeness for fast feedback, add behavioral quality judges for deeper assessment, and use pairwise comparison when you want to directly measure before-vs-after improvement.
+Start with structural completeness for fast feedback. Add behavioral quality judges for deeper assessment. Use pairwise comparison when you want to directly measure before-vs-after improvement.
 
 ### Tips
 
-- **Already-optimal skills**: If `/skill:enhance` reports that all applicable patterns are already strong, the re-evaluation in step 5 will produce scores identical (or very close) to the baseline. This confirms the skill is already well-authored rather than indicating a problem with the workflow.
+- **Already-optimal skills**: If `/skill:enhance` reports all patterns are already strong, `/skill:measure` skips re-evaluation. This confirms the skill is well-authored.
 
-- **Scores decrease after enhancement**: This can happen if the enhancement changed the skill's behavior in unexpected ways. Investigate which judges show lower scores and compare the before/after skill text to understand what shifted. You may want to selectively revert parts of the enhancement or run `/skill:enhance` again with more specific guidance.
+- **Scores decrease after enhancement**: Investigate which judges show lower scores and compare the before/after skill text. You may want to selectively revert parts of the enhancement.
 
-- **Iterating**: You can repeat the cycle. After the first enhancement, run `/skill:check` to see if any patterns are still weak, enhance again, and re-evaluate. Each pass typically yields smaller improvements as the skill approaches its ceiling.
+- **Iterating**: You can repeat the cycle. Each pass typically yields smaller improvements as the skill approaches its ceiling.
+
+## Credits
+
+- [Bilgin Ibryam](https://www.generativeprogrammer.com/) for the 9 skill design principles that informed the pattern framework
+- [Anthropic](https://www.anthropic.com/engineering/evaluating-ai-agents) for evaluation methodology guidance
+- [agent-eval-harness](https://github.com/opendatahub-io/agent-eval-harness) for the evaluation infrastructure that powers `/skill:measure`

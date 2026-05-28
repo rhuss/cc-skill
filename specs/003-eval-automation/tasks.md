@@ -17,8 +17,8 @@
 
 **Purpose**: Create directories and foundational structure
 
-- [ ] T001 Create directory structure: `skill/skills/measure/` and `skill/scripts/` directories
-- [ ] T002 Update `skill/.claude-plugin/plugin.json` to register the new `skill:measure` skill if needed
+- [x] T001 Create directory structure: `skill/skills/measure/` and `skill/scripts/` directories
+- [x] T002 Update `skill/.claude-plugin/plugin.json` to register the new `skill:measure` skill if needed
 
 ---
 
@@ -32,11 +32,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [US2] Write `skill/scripts/compare-runs.sh` with argument parsing, input validation (check both dirs exist, both have summary.yaml), and error handling (FR-006, FR-010, FR-012)
-- [ ] T004 [US2] Add judge extraction logic to `skill/scripts/compare-runs.sh` that reads `summary.yaml` from both directories using `yq`, builds union set of judge names, and reads `pass_rate` (boolean) or `mean` (numeric) per judge (FR-007, FR-011)
-- [ ] T005 [US2] Add terminal table output to `skill/scripts/compare-runs.sh` that prints per-judge baseline score, enhanced score, delta, and directional indicator to stdout (FR-008)
-- [ ] T006 [US2] Add markdown report generation to `skill/scripts/compare-runs.sh` that writes a detailed comparison report to `<run-dir-2>/comparison.md` with summary counts (improved/regressed/unchanged) and per-judge details (FR-009)
-- [ ] T007 [US2] Make `skill/scripts/compare-runs.sh` executable (`chmod +x`)
+- [x] T003 [US2] Write `skill/scripts/compare-runs.sh` with argument parsing, input validation (check both dirs exist, both have summary.yaml), and error handling (FR-006, FR-010, FR-012)
+- [x] T004 [US2] Add judge extraction logic to `skill/scripts/compare-runs.sh` that reads `summary.yaml` from both directories using `yq`, builds union set of judge names, and reads `pass_rate` (boolean) or `mean` (numeric) per judge (FR-007, FR-011)
+- [x] T005 [US2] Add terminal table output to `skill/scripts/compare-runs.sh` that prints per-judge baseline score, enhanced score, delta, and directional indicator to stdout (FR-008)
+- [x] T006 [US2] Add markdown report generation to `skill/scripts/compare-runs.sh` that writes a detailed comparison report to `<run-dir-2>/comparison.md` with summary counts (improved/regressed/unchanged) and per-judge details (FR-009)
+- [x] T007 [US2] Make `skill/scripts/compare-runs.sh` executable (`chmod +x`)
 
 **Checkpoint**: The comparison script works standalone with any two eval run directories
 
@@ -50,13 +50,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Write `skill/skills/measure/SKILL.md` with frontmatter (name, description, activation triggers, exclusions) following the existing checker/enhancer pattern
-- [ ] T009 [US1] Add prerequisite check to `skill/skills/measure/SKILL.md` that detects whether eval.yaml exists for the target skill and directs user to `/eval-analyze` if missing (FR-004)
-- [ ] T010 [US1] Add Step 1 (baseline) to `skill/skills/measure/SKILL.md`: invoke `/eval-run` on the target skill's eval config and capture the run directory path from the conversation output (FR-002, FR-014)
-- [ ] T011 [US1] Add Step 2 (enhance) to `skill/skills/measure/SKILL.md`: invoke `/skill:enhance` on the target SKILL.md and detect the "already optimal" signal to skip re-evaluation (FR-002, FR-005)
-- [ ] T012 [US1] Add Step 3 (re-eval) to `skill/skills/measure/SKILL.md`: invoke `/eval-run` again and capture the second run directory path (FR-002, FR-014)
-- [ ] T013 [US1] Add Step 4 (compare) to `skill/skills/measure/SKILL.md`: call `scripts/compare-runs.sh` via Bash with both run directory paths and present the delta report (FR-003, FR-013)
-- [ ] T014 [US1] Add error handling to `skill/skills/measure/SKILL.md` for interrupted loops (report what completed and what remains)
+- [x] T008 [US1] Write `skill/skills/measure/SKILL.md` with frontmatter (name, description, activation triggers, exclusions) following the existing checker/enhancer pattern
+- [x] T009 [US1] Add prerequisite check to `skill/skills/measure/SKILL.md` that detects whether eval.yaml exists for the target skill and directs user to `/eval-analyze` if missing (FR-004)
+- [x] T010 [US1] Add Step 1 (baseline) to `skill/skills/measure/SKILL.md`: invoke `/eval-run` on the target skill's eval config and capture the run directory path from the conversation output (FR-002, FR-014)
+- [x] T011 [US1] Add Step 2 (enhance) to `skill/skills/measure/SKILL.md`: invoke `/skill:enhance` on the target SKILL.md and detect the "already optimal" signal to skip re-evaluation (FR-002, FR-005)
+- [x] T012 [US1] Add Step 3 (re-eval) to `skill/skills/measure/SKILL.md`: invoke `/eval-run` again and capture the second run directory path (FR-002, FR-014)
+- [x] T013 [US1] Add Step 4 (compare) to `skill/skills/measure/SKILL.md`: call `scripts/compare-runs.sh` via Bash with both run directory paths and present the delta report (FR-003, FR-013)
+- [x] T014 [US1] Add error handling to `skill/skills/measure/SKILL.md` for interrupted loops (report what completed and what remains)
 
 **Checkpoint**: The full measure-enhance-measure loop works end-to-end in a single `/skill:measure` invocation
 
@@ -70,7 +70,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Review and refine the markdown report template in `skill/scripts/compare-runs.sh` to ensure it includes a summary section with improved/regressed/unchanged counts, per-judge detail table with directional indicators, and clear regression highlighting
+- [x] T015 [US3] Review and refine the markdown report template in `skill/scripts/compare-runs.sh` to ensure it includes a summary section with improved/regressed/unchanged counts, per-judge detail table with directional indicators, and clear regression highlighting
 
 **Checkpoint**: The comparison report is readable and regressions are impossible to miss
 
@@ -80,9 +80,9 @@
 
 **Purpose**: Documentation, consistency, and integration
 
-- [ ] T016 Run `/skill:check skill/skills/measure/SKILL.md` to evaluate the new skill against the 14 authoring patterns
-- [ ] T017 Apply any improvements suggested by skill:check to `skill/skills/measure/SKILL.md`
-- [ ] T018 Update `brainstorm/03-eval-automation.md` status from "active" to "spec-created" with spec path reference
+- [x] T016 Run `/skill:check skill/skills/measure/SKILL.md` to evaluate the new skill against the 14 authoring patterns
+- [x] T017 Apply any improvements suggested by skill:check to `skill/skills/measure/SKILL.md`
+- [x] T018 Update `brainstorm/03-eval-automation.md` status from "active" to "spec-created" with spec path reference
 
 ---
 
