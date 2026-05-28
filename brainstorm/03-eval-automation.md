@@ -1,7 +1,8 @@
 # Brainstorm: Automated Evaluation Flow for Skill Enhancement
 
 **Date:** 2026-05-27
-**Status:** active
+**Status:** implemented
+**Spec**: `specs/003-eval-automation/spec.md`
 
 ## Problem Framing
 

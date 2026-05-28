@@ -5,6 +5,7 @@
 All skills in this plugin use the `skill:` prefix:
 - `skill:check` - Evaluate a SKILL.md against authoring patterns
 - `skill:enhance` - Improve a SKILL.md by applying missing patterns
+- `skill:measure` - Run baseline-enhance-reeval loop with comparison report
 
 ## Knowledge Loading
 
