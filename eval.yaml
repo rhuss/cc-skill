@@ -26,6 +26,8 @@ mlflow:
 
 dataset:
   path: eval/cases
+  # How many targeted test cases to generate per enhanced pattern during /skill:measure (1-2)
+  targeted_cases_per_pattern: 1
   schema: |
     Each case directory contains:
     - input.yaml: YAML file with 'skill_path' (path to the SKILL.md file
