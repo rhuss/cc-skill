@@ -1,11 +1,13 @@
 {
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Bash(*)",
       "Read(*)",
       "Edit(*)",
       "Write(*)",
-      "mcp__*",
+      "Skill",
+      "mcp__*__*",
       "Bash(specify *)",
       "Bash(*spex-init.sh*)",
       "Bash(*spex-ship-statusline.sh*)"

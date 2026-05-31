@@ -268,6 +268,43 @@ Output the review findings to the console. Do NOT write a `REVIEW-SPEC.md` file.
 - Significant rework needed
 - May need re-brainstorming
 
+### 11. Offer to Fix Issues
+
+After presenting the review report:
+
+**Autonomous mode:** Fix all issues (both Important and Minor) automatically without prompting.
+
+**If Important issues exist (with or without Minor):**
+
+Present a summary of all Important findings as a numbered list, then ask using `AskUserQuestion` (`multiSelect: false`, header: "Fix"):
+
+**"Found N Important issue(s). Fix them now?"**
+
+Options (if Minor issues also exist):
+1. **"Fix Important issues"**: "Apply fixes to the spec for all Important findings"
+2. **"Fix all (Important + Minor)"**: "Also fix Minor issues in the same pass"
+3. **"Skip fixes"**: "Proceed without fixing, review the findings manually"
+
+Options (if no Minor issues):
+1. **"Fix Important issues"**: "Apply fixes to the spec for all Important findings"
+2. **"Skip fixes"**: "Proceed without fixing, review the findings manually"
+
+If the user selects to fix: apply the fixes directly to `spec.md`, then re-display only the changed sections so the user can verify.
+
+**If only Minor issues exist (no Important):**
+
+Present a summary of all Minor findings, then ask using `AskUserQuestion` (`multiSelect: false`, header: "Fix"):
+
+**"Found N Minor issue(s). Fix them now?"**
+
+Options:
+1. **"Fix Minor issues"**: "Apply fixes to the spec"
+2. **"Skip fixes"**: "Proceed without fixing"
+
+If the user selects to fix: apply the fixes directly to `spec.md`, then re-display only the changed sections.
+
+**If no issues:** Skip this step entirely.
+
 ## Review Checklist
 
 - [ ] Load and read spec thoroughly
@@ -280,6 +317,7 @@ Output the review findings to the console. Do NOT write a `REVIEW-SPEC.md` file.
 - [ ] Run `/speckit-analyze` for cross-artifact consistency (if available)
 - [ ] Generate review report
 - [ ] Make recommendation (ready/needs work/major issues)
+- [ ] Offer to fix Important/Minor issues
 
 ## Quality Standards
 
@@ -322,13 +360,10 @@ Output the review findings to the console. Do NOT write a `REVIEW-SPEC.md` file.
 
 ## Update Flow State
 
-After the review completes, mark the review-spec gate as passed in the flow state:
+**MANDATORY: Update flow state.** This MUST run on every exit path, including early returns (e.g., "already passed"). Use the flow state script:
 
 ```bash
-STATE_FILE=".specify/.spex-state"
-if [ -f "$STATE_FILE" ] && jq -e '.mode == "flow"' "$STATE_FILE" >/dev/null 2>&1; then
-  jq '.review_spec_passed = true | .running = ""' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-fi
+FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-spec
 ```
 
 This updates the status line to show `S ✓`.

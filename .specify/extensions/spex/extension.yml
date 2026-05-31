@@ -22,9 +22,6 @@ provides:
     - name: speckit.spex.help
       file: commands/speckit.spex.help.md
       description: "Quick reference for all spex commands and workflow"
-    - name: speckit.spex.init
-      file: commands/speckit.spex.init.md
-      description: "Initialize or update the project with specify CLI and spex configuration"
     - name: speckit.spex.evolve
       file: commands/speckit.spex.evolve.md
       description: "Handle spec/code mismatches through AI-guided analysis and user-controlled evolution"
@@ -40,9 +37,15 @@ provides:
     - name: speckit.spex.extensions
       file: commands/speckit.spex.extensions.md
       description: "Manage spex extensions: enable, disable, or list active extensions"
+    - name: speckit.spex.finish
+      file: commands/speckit.spex.finish.md
+      description: "Complete a feature: verify, then merge/PR/keep with worktree-aware cleanup"
     - name: speckit.spex.flow-state
       file: commands/speckit.spex.flow-state.md
       description: "Create flow state for step-by-step SDD workflow tracking"
+    - name: speckit.spex.clear
+      file: commands/speckit.spex.clear.md
+      description: "Clear spex state: dismiss status line, remove stale flow/ship artifacts"
 
 hooks:
   after_specify:
@@ -89,6 +92,11 @@ hooks:
     args: "implemented"
     optional: false
     description: "Mark implementation complete in flow state"
+  after_finish:
+    command: speckit.spex.flow-state
+    args: "cleanup"
+    optional: false
+    description: "Remove flow state file after feature completion"
 
 tags:
   - "spex"

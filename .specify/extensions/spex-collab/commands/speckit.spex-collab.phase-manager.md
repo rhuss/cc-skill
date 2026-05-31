@@ -23,7 +23,7 @@ If ship mode is detected, return immediately.
 ## Extension Enabled Check
 
 ```bash
-if [ ! -f "spex/extensions/spex-collab/extension.yml" ]; then
+if [ ! -f ".specify/extensions/spex-collab/extension.yml" ]; then
   echo "spex-collab extension not found, skipping"
 fi
 ```
@@ -160,8 +160,59 @@ command -v gh >/dev/null 2>&1
 ### If gh is available
 
 Construct PR details:
-- **Title**: "Phase [N]: [Phase Name] - [Feature Name from spec]"
-- **Body**: The phase section just added to REVIEWERS.md (What Changed, Spec Compliance, Focus Areas, AI Assumptions)
+
+**Title format**: `[Feature Name] [Spec + Impl (N/T)]` where N is the current phase and T is the total number of phases.
+
+```bash
+FEATURE_NAME=$(head -1 "$FEATURE_DIR/spec.md" | sed 's/^# Feature Specification: //')
+TOTAL_PHASES=$(jq '.collab.phase_plan | length' .specify/.spex-state 2>/dev/null || echo 1)
+CURRENT_PHASE_NUM=[N]  # current phase number
+
+if [ "$TOTAL_PHASES" -gt 1 ]; then
+  PR_TITLE="${FEATURE_NAME} [Spec + Impl (${CURRENT_PHASE_NUM}/${TOTAL_PHASES})]"
+else
+  PR_TITLE="${FEATURE_NAME} [Spec + Impl]"
+fi
+```
+
+If a spec-only PR was created earlier (titled `... [Spec]`), update its title to reflect the implementation phase using `gh pr edit`.
+
+- **Body**: Start with a link to REVIEWERS.md for full review context, then include the phase section.
+
+Construct a full GitHub URL for REVIEWERS.md and read label config:
+
+```bash
+BRANCH=$(git branch --show-current)
+REVIEWERS_REL="${FEATURE_DIR#$(git rev-parse --show-toplevel)/}/REVIEWERS.md"
+REMOTE=$(git remote | grep -x upstream 2>/dev/null || echo origin)
+REMOTE_URL=$(git remote get-url "$REMOTE" 2>/dev/null | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|')
+
+# When working in a fork, target PRs against the upstream repository
+REPO_FLAG=""
+if git remote | grep -qx upstream 2>/dev/null; then
+  UPSTREAM_REPO=$(git remote get-url upstream 2>/dev/null | sed 's|.*github\.com[:/]||; s|\.git$||')
+  [ -n "$UPSTREAM_REPO" ] && REPO_FLAG="--repo $UPSTREAM_REPO"
+fi
+REVIEWERS_URL="${REMOTE_URL}/blob/${BRANCH}/${REVIEWERS_REL}"
+
+# Read label config
+COLLAB_CONFIG=".specify/extensions/spex-collab/collab-config.yml"
+LABELS_ENABLED=$(yq -r '.labels.enabled // true' "$COLLAB_CONFIG" 2>/dev/null || echo "true")
+SPEC_LABEL=$(yq -r '.labels.spec // "spex/spec"' "$COLLAB_CONFIG" 2>/dev/null || echo "spex/spec")
+SPEC_APPROVED_LABEL=$(yq -r '.labels.spec_approved // "spex/spec-approved"' "$COLLAB_CONFIG" 2>/dev/null || echo "spex/spec-approved")
+IMPL_LABEL=$(yq -r '.labels.implement // "spex/implement"' "$COLLAB_CONFIG" 2>/dev/null || echo "spex/implement")
+LABEL_FLAG=""
+if [ "$LABELS_ENABLED" = "true" ]; then
+  LABEL_FLAG="--label ${IMPL_LABEL}"
+fi
+```
+
+The PR body MUST begin with:
+```
+> **[Review Guide](REVIEWERS_URL)** for full context: motivation, key decisions, and scope boundaries.
+```
+
+Followed by the phase section content (What Changed, Spec Compliance, Focus Areas, AI Assumptions).
 
 Use AskUserQuestion to ask:
 
@@ -174,14 +225,31 @@ Use AskUserQuestion to ask:
 **If "Create PR"**:
 
 ```bash
-gh pr create --base "${PR_BASE}" --title "[title]" --body "$(cat <<'PR_BODY'
+gh pr create ${REPO_FLAG} --base "${PR_BASE}" --title "$PR_TITLE" ${LABEL_FLAG} --body "$(cat <<PR_BODY
+> **[Review Guide](${REVIEWERS_URL})** for full context: motivation, key decisions, and scope boundaries.
+
 [PR body content from REVIEWERS.md phase section]
 PR_BODY
 )"
 ```
 
+If the label doesn't exist in the repo, `gh pr create --label` will fail. In that case, retry without the label and warn:
+```
+Warning: Label "${IMPL_LABEL}" not found in this repo. PR created without label.
+To create it: gh label create "${IMPL_LABEL}" --color 0e8a16 --description "Implementation PR"
+Or disable labels: set labels.enabled to false in .specify/extensions/spex-collab/collab-config.yml
+```
+
 After PR creation:
 - Capture the PR URL from gh output
+- If labels are enabled, update labels on the PR to reflect the implementation phase:
+  ```bash
+  # If an existing PR has spex/spec, transition labels
+  PR_NUM=$(gh pr view --json number --jq .number 2>/dev/null)
+  if [ -n "$PR_NUM" ] && [ "$LABELS_ENABLED" = "true" ]; then
+    gh pr edit "$PR_NUM" --remove-label "$SPEC_LABEL" --add-label "$SPEC_APPROVED_LABEL","$IMPL_LABEL" 2>/dev/null || true
+  fi
+  ```
 - Mark the phase as completed (see below)
 - Output: "PR created: [URL]"
 - Output: "Phase [N] complete. After the PR is merged, invoke `/speckit.spex-collab.phase-manager` to continue with Phase [N+1]."
@@ -206,8 +274,10 @@ gh CLI not found. To create the PR manually:
 
 Branch: [current branch name]
 Target: [PR_BASE]
-Suggested title: Phase [N]: [Phase Name] - [Feature Name]
-Suggested body: [phase section content]
+Suggested title: [Feature Name] [Spec + Impl (N/T)]
+Suggested body (start with the review guide link):
+  > **[Review Guide](REVIEWERS_URL)** for full context: motivation, key decisions, and scope boundaries.
+  [phase section content]
 ```
 
 Then use AskUserQuestion:

@@ -29,6 +29,8 @@ A skill author wants to review the targeted test cases before they run against t
 
 **Why this priority**: Targeted cases are auto-generated. A quick review prevents wasted eval cycles on bad test cases.
 
+**Interaction Model**: After generating targeted cases, `/skill:measure` displays a summary of each case (name, targeted pattern, input synopsis) and prompts the author: "Proceed with eval? (y/n/edit)". Choosing "y" continues, "n" aborts, and "edit" opens the cases for modification before proceeding.
+
 **Independent Test**: Run the targeted case generation step in isolation and inspect the generated cases before any eval runs.
 
 **Acceptance Scenarios**:
@@ -41,8 +43,19 @@ A skill author wants to review the targeted test cases before they run against t
 ### Edge Cases
 
 - What happens when the enhancement diff is empty (enhancer made no changes)? No targeted cases should be generated. The workflow proceeds with the existing dataset only.
-- What happens when the enhancement touches areas that the existing dataset already covers well? The targeted case generator should detect overlap and avoid generating redundant cases.
+- What happens when the enhancement touches areas that the existing dataset already covers well? The targeted case generator checks existing case directory names and `targets_pattern` metadata against enhanced pattern names. If an existing case already targets the same pattern, generation for that pattern is skipped.
 - What happens when `/eval-dataset` is not available? The workflow should fall back to the existing dataset with a warning that targeted coverage could not be generated.
+- What happens when targeted case generation partially fails (e.g., 3 patterns enhanced but only 1 case generated)? Proceed with the successfully generated cases. Warn the author which patterns failed during the interactive review prompt, then continue with the available cases.
+
+## Clarifications
+
+### Session 2026-05-29
+
+- Q: How should `/skill:measure` capture the enhancement diff? → A: Parse the enhancer's "What Changed" markdown table output.
+- Q: How should the review interaction work for targeted cases? → A: Interactive prompt showing generated cases, asking "proceed with eval? (y/n/edit)".
+- Q: How should overlap/deduplication between targeted and existing cases be determined? → A: Name/pattern-based matching; skip generating a case if an existing case already targets the same pattern name.
+- Q: Where should the "cases per pattern" configuration live? → A: In `eval.yaml` (e.g., `targeted_cases_per_pattern: 2`), defaulting to 1 if unset.
+- Q: What should happen if targeted case generation partially fails? → A: Proceed with partial results; warn which patterns failed, continue with successfully generated cases.
 
 ## Requirements *(mandatory)*
 
@@ -55,12 +68,12 @@ A skill author wants to review the targeted test cases before they run against t
 - **FR-005**: Each targeted test case MUST include metadata indicating which enhancement it targets (for traceability and review).
 - **FR-006**: When `/skill:enhance` reports "already optimal" (no changes made), targeted case generation MUST be skipped entirely.
 - **FR-007**: Targeted case generation MUST NOT modify or remove existing test cases in the dataset.
-- **FR-008**: The number of targeted cases generated MUST be bounded (1-2 per enhanced pattern, configurable).
+- **FR-008**: The number of targeted cases generated MUST be bounded (1-2 per enhanced pattern), configured via `targeted_cases_per_pattern` in `eval.yaml` (default: 1 if unset).
 - **FR-009**: `/skill:measure` MUST report how many targeted cases were generated and which enhancements they cover.
 
 ### Key Entities
 
-- **Enhancement Diff**: The set of patterns that `/skill:enhance` added or strengthened, extracted from the enhancer's "What Changed" output table.
+- **Enhancement Diff**: The set of patterns that `/skill:enhance` added or strengthened, extracted by parsing the enhancer's "What Changed" markdown table output. Each row in the table identifies a pattern name and its before/after status (e.g., "Missing → Added", "Weak → Strengthened").
 - **Targeted Test Case**: A test case generated specifically to exercise a pattern that was enhanced, stored in the same format as existing eval cases.
 - **Combined Dataset**: The merged set of original test cases plus targeted test cases, used for both baseline and enhanced eval runs.
 

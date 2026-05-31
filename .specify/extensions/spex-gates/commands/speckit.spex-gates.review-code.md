@@ -31,10 +31,7 @@ In autonomous mode: do NOT output a completion summary, do NOT ask "Shall I proc
 If review-code is running, implementation is by definition done. Mark it immediately so the status line shows `impl ✓` during the review:
 
 ```bash
-STATE_FILE=".specify/.spex-state"
-if [ -f "$STATE_FILE" ] && jq -e '.mode == "flow"' "$STATE_FILE" >/dev/null 2>&1; then
-  jq '.implemented = true | .running = "review-code"' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-fi
+FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" implemented && "$FLOW_STATE" running review-code
 ```
 
 ## IMPORTANT: Deep Review Extension Check
@@ -314,6 +311,7 @@ Resolution logic:
   - External tool settings: `{coderabbit: true/false, copilot: true/false}` (resolved from defaults + flags)
   - Spec path and feature directory
 - Wait for deep review to complete before proceeding
+- Deep review includes a post-fix spec compliance check (Step 7b) that catches requirements dropped during the fix loop. If deep review reports dropped requirements, treat them as Critical findings that must be resolved before proceeding.
 
 **If deep review is enabled AND spec compliance < 95%:**
 - Do NOT invoke deep review
@@ -332,7 +330,7 @@ Resolution logic:
 
 **If 100% compliant (standard review path):**
 - Approve for verification
-- Proceed to `speckit.spex-gates.stamp`
+- Proceed to `speckit.spex.finish`
 
 ## Assessment Criteria
 
@@ -400,13 +398,22 @@ This is not just code quality review; it's **spec validation**.
 
 ## Update Flow State
 
-After the review completes, mark the review-code gate as passed in the flow state:
+**MANDATORY: Update flow state.** This MUST run on every exit path. Use the flow state script:
 
 ```bash
-STATE_FILE=".specify/.spex-state"
-if [ -f "$STATE_FILE" ] && jq -e '.mode == "flow"' "$STATE_FILE" >/dev/null 2>&1; then
-  jq '.review_code_passed = true | .implemented = true | .running = ""' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-fi
+FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
 ```
 
 This updates the status line to show both `impl ✓` and `R ✓`. If code review passed, implementation is by definition complete.
+
+## Next Steps (tell the user)
+
+After code review passes, tell the user:
+
+```
+Code review complete. To close out this feature:
+  1. /clear                    (free context for final gate)
+  2. /speckit-spex-finish       (verify + merge/PR, all-in-one)
+```
+
+This prompt is mandatory on every PASS exit. The user needs to know how to finalize.

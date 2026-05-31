@@ -17,12 +17,12 @@ This command manages git worktrees to isolate feature development. It supports f
 
 ## Action Routing
 
-Determine the action from context:
+Determine the action from the argument:
 
-- If invoked from the `after_specify` hook (post-specify context), the action is **create**.
-- If invoked with argument `finish`, the action is **finish**.
-- If invoked with argument `cleanup`, the action is **cleanup**.
-- Otherwise (no args, `list`, or invoked directly), the action is **list**.
+- If invoked with argument `create` (from the `after_specify` hook): the action is **create**. Execute immediately, no confirmation needed.
+- If invoked with argument `finish`: the action is **finish**.
+- If invoked with argument `cleanup`: the action is **cleanup**.
+- Otherwise (no args, `list`, or invoked directly): the action is **list**.
 
 ## Prerequisites
 
@@ -148,6 +148,21 @@ fi
 
 Using `git add -u` (tracked modifications only) plus explicit paths for new spec artifacts limits the commit scope to intended files. The `git diff --cached --quiet` guard skips the commit when there are no staged changes, avoiding empty commits.
 
+### Step 5b: Capture Feature Directory Before Branch Switch
+
+The next step switches to the default branch, which changes tracked files on disk. Since `.specify/feature.json` is tracked, its contents will revert to whatever the default branch has. Capture the correct `feature_directory` now, while still on the feature branch:
+
+```bash
+FEATURE_DIR=""
+if [ -f ".specify/feature.json" ]; then
+  FEATURE_DIR=$(jq -r '.feature_directory // empty' ".specify/feature.json")
+fi
+# Fallback to branch-derived path if feature.json is missing or empty
+FEATURE_DIR=${FEATURE_DIR:-"specs/$BRANCH_NAME"}
+```
+
+This value is used in Step 8b to set the correct feature context in the worktree.
+
 ### Step 6: Restore Default Branch (before worktree creation)
 
 Git does not allow two worktrees to have the same branch checked out. Since `speckit-specify` just created and checked out the feature branch, we must switch back to the default branch before creating a worktree for that branch.
@@ -209,24 +224,39 @@ fi
 
 This ensures the worktree has the same extensions, hooks, permissions, and skills as the main repo. No `/spex:init` needed in the worktree.
 
-### Step 8b: Update feature.json for the Worktree Branch
+### Step 8b: Update feature.json and flow state for the Worktree Branch
 
-The copied `.specify/feature.json` still points to whatever feature was active in the source repo. Update it to reference the correct spec directory for this worktree's branch:
+The copied `.specify/feature.json` may point to whatever feature was active on the default branch (since feature.json is tracked and reverts on branch switch). Write the correct value captured in Step 5b:
 
 ```bash
 FEATURE_JSON="$WORKTREE_PATH/.specify/feature.json"
-if [ -f "$FEATURE_JSON" ]; then
-  # Use jq to update the feature_directory to match the worktree's branch
-  jq --arg dir "specs/$BRANCH_NAME" '.feature_directory = $dir' "$FEATURE_JSON" > "${FEATURE_JSON}.tmp" \
-    && mv "${FEATURE_JSON}.tmp" "$FEATURE_JSON"
+echo "{\"feature_directory\": \"$FEATURE_DIR\"}" | jq '.' > "$FEATURE_JSON"
+```
+
+This writes the `FEATURE_DIR` value captured in Step 5b, which reflects the actual spec directory created by speckit-specify (not a branch-name derivation that may differ).
+
+The copied `.specify/.spex-state` also contains the old `feature_branch`. Update it to match the worktree's branch so the status line works correctly (the statusline script deletes state files where `feature_branch` doesn't match the current branch):
+
+```bash
+STATE_FILE="$WORKTREE_PATH/.specify/.spex-state"
+if [ -f "$STATE_FILE" ]; then
+  jq --arg branch "$BRANCH_NAME" --arg dir "$FEATURE_DIR" \
+    '.feature_branch = $branch | .spec_dir = $dir' "$STATE_FILE" > "${STATE_FILE}.tmp" \
+    && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 fi
 ```
 
-This prevents spec-kit commands in the worktree from operating on the wrong spec directory.
+This prevents both spec-kit commands and the status line from operating on the wrong feature context.
 
-### Step 9: Print Switch Instructions
+### Step 9: Print Output
 
-Print clear instructions for the user showing the worktree path:
+Print a machine-readable line followed by human-readable instructions:
+
+```bash
+echo "WORKTREE_CREATED path=$WORKTREE_PATH"
+```
+
+Then print instructions for the user:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -242,7 +272,9 @@ Print clear instructions for the user showing the worktree path:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Use the actual `WORKTREE_PATH` value (computed in Step 4) in the output. This ensures the path is correct regardless of the configured `base_path`.
+Use the actual `WORKTREE_PATH` value (computed in Step 4) in the output.
+
+**Ship pipeline note:** When running inside a `speckit-spex-ship` pipeline, ship will automatically `cd` into the worktree and continue the pipeline there. No manual session restart needed.
 
 ## Action: List
 
@@ -442,7 +474,7 @@ fi
 DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
 
 # Get all feature branches merged into the default branch
-MERGED_BRANCHES=$(git branch --merged "$DEFAULT_BRANCH" | sed 's/^[* ]*//' | grep -E '^[0-9]{3}-')
+MERGED_BRANCHES=$(git branch --merged "$DEFAULT_BRANCH" | sed 's/^[+* ]*//' | grep -E '^[0-9]{3}-')
 ```
 
 ### Step 2: Cross-Reference with Worktrees

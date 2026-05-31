@@ -182,15 +182,32 @@ After all selected fixes are applied, re-present any remaining unaddressed findi
 
 **If "Skip"**: Proceed without changes. Note that blocking issues remain unresolved.
 
-## 8. Update Flow State
+## 8. Suggest Collaboration Skills
 
-After validation completes (regardless of whether findings were fixed or skipped), mark the review-plan gate as passed in the flow state:
+Skip this step in autonomous mode.
+
+After plan review completes, check whether the plan has characteristics that benefit from collaboration skills. Suggest them when ANY of these apply:
+
+- The plan has **multiple phases** or the tasks group into distinct stages
+- The plan mentions **reviewers, stakeholders, or collaborators**
+- The feature touches **multiple subsystems** (flagged in step 0)
+
+When applicable, print:
+
+```
+Before implementation, consider:
+  /speckit-spex-collab-phase-split  - propose how to split into separate PRs
+  /speckit-spex-collab-reviewers    - generate a review guide for PR reviewers
+```
+
+This is informational, not blocking. Do not prompt or gate on it.
+
+## 9. Update Flow State
+
+**MANDATORY: Update flow state.** This MUST run on every exit path, including early returns (e.g., "already passed", "no findings"). Use the flow state script:
 
 ```bash
-STATE_FILE=".specify/.spex-state"
-if [ -f "$STATE_FILE" ] && jq -e '.mode == "flow"' "$STATE_FILE" >/dev/null 2>&1; then
-  jq '.review_plan_passed = true | .running = ""' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-fi
+FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-plan
 ```
 
 This updates the status line to show `P ✓`.

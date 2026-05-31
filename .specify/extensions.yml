@@ -87,7 +87,7 @@ hooks:
     condition: null
   - extension: spex-collab
     command: speckit.spex-collab.phase-split
-    enabled: true
+    enabled: false
     optional: true
     prompt: Review PR split for implementation phases?
     description: Present phase split proposal before implementation
@@ -149,8 +149,8 @@ hooks:
   - extension: spex-worktrees
     command: speckit.spex-worktrees.manage
     enabled: true
-    optional: true
-    prompt: Create a worktree for this feature?
+    optional: false
+    prompt: Execute speckit.spex-worktrees.manage?
     description: Create git worktree after specification
     condition: null
   after_clarify:
@@ -207,7 +207,7 @@ hooks:
     condition: null
   - extension: spex-collab
     command: speckit.spex-collab.reviewers
-    enabled: true
+    enabled: false
     optional: false
     prompt: Execute speckit.spex-collab.reviewers?
     description: Generate REVIEWERS.md after task generation
@@ -264,4 +264,12 @@ hooks:
     optional: true
     prompt: Commit after syncing issues?
     description: Auto-commit after tasks-to-issues conversion
+    condition: null
+  after_finish:
+  - extension: spex
+    command: speckit.spex.flow-state
+    enabled: true
+    optional: false
+    prompt: Execute speckit.spex.flow-state?
+    description: Remove flow state file after feature completion
     condition: null

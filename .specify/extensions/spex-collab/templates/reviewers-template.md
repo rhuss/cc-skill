@@ -2,34 +2,59 @@
 
 **Generated**: YYYY-MM-DD | **Spec**: [spec.md](spec.md)
 
-## Feature Overview
+## Why This Change
 
-[2-3 sentence summary extracted from spec]
+[The problem being solved: what's broken, painful, or missing today.
+Written so a reviewer who has NOT read the spec understands the
+motivation in 30 seconds.]
 
-## Scope Boundaries
+## What Changes
 
-**In scope**:
-- [bullet list from spec requirements]
+[One paragraph summary of the solution at the outcome level: what
+gets added, removed, or restructured. Stay at the "what does the
+user/system gain" level. Mention breaking changes upfront if any.
+Do NOT describe implementation details here.]
 
-**Out of scope**:
-- [bullet list from spec out-of-scope section]
+## How It Works
+
+[Implementation approach from plan.md: architecture, key modules,
+data flow, integration points. This is where technical details
+belong. Keep it concise but specific enough that a reviewer
+understands the implementation strategy without reading plan.md.]
+
+## When It Applies
+
+[Reframe scope as applicability. More natural than in/out lists
+for a reviewer scanning the PR.]
+
+**Applies when**:
+- [conditions, contexts, or scenarios where this feature is active]
+
+**Does not apply when**:
+- [explicit exclusions with brief rationale for deferral]
 
 ## Key Decisions
 
-1. [Numbered list of architectural/design decisions with trade-off context]
+1. [Numbered list of the most significant design choices. For each:
+   what was decided, what alternatives were considered, why this
+   approach was chosen.]
 
 ## Areas Needing Attention
 
-[Points where reasonable engineers might disagree, controversial choices]
+[Points where reasonable engineers might disagree. Flag trade-offs,
+assumptions that could be wrong, patterns that deviate from project
+conventions, complexity concerns.]
 
 ## Open Questions
 
-[Remaining ambiguities or deferred decisions]
+[Remaining ambiguities or deferred decisions. If none, state
+"No open questions identified."]
 
 ## Review Checklist
 
-- [ ] Scope matches the stated boundaries
 - [ ] Key decisions are justified
+- [ ] Breaking changes are documented with migration guidance
+- [ ] Scope matches the stated boundaries
 - [ ] Success criteria are achievable
 - [ ] No unstated assumptions
 

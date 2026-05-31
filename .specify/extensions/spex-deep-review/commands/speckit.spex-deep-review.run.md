@@ -51,6 +51,21 @@ Resolution:
 
 This ensures CodeRabbit and Copilot are enabled by default regardless of how deep-review is invoked.
 
+### Test Suite Configuration
+
+The deep review config (`deep-review-config.yml`) supports these test-related keys:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `test_command` | string | `""` (empty) | Override auto-detected test command. When set, skips auto-detection. Example: `"make integration-test"` |
+| `test_timeout_seconds` | integer | `300` | Maximum seconds for test suite execution before timeout. Timeout is treated as a test failure. |
+
+When `test_command` is empty, the fix loop auto-detects the test command from the project structure (see Step 2).
+
+### Review Hints
+
+Projects can provide framework-specific patterns in `.specify/review-hints.md`. When this file exists and is non-empty, its content is injected into every review agent's preamble (see Common Preamble item 10). This allows projects to document non-obvious framework behaviors (e.g., API client side effects, implicit state mutations) that review agents should know about.
+
 ## Orchestration Flow
 
 ### Step 1: Determine Changed Files
@@ -87,6 +102,7 @@ which coderabbit >/dev/null 2>&1 && echo "CODERABBIT_AVAILABLE=true"
 
 # GitHub Copilot CLI (skip if copilot setting is false)
 which copilot >/dev/null 2>&1 && echo "COPILOT_AVAILABLE=true"
+
 ```
 
 **External tool resolution:**
@@ -95,6 +111,46 @@ which copilot >/dev/null 2>&1 && echo "COPILOT_AVAILABLE=true"
 3. If `copilot` is `false`, skip Copilot detection entirely
 4. If a tool is enabled in settings but not installed, proceed silently without it
 5. **When CodeRabbit is available and enabled, it MUST be invoked.** Do not skip it for performance or convenience reasons. CodeRabbit provides external validation that complements the internal review agents.
+
+**Test command auto-detection:**
+
+Detect the project's test command for use in the fix loop (Step 7.6). Check sources in this order; first match wins:
+
+```bash
+# 1. Config override (highest priority)
+DEEP_REVIEW_CONFIG=".specify/extensions/spex-deep-review/deep-review-config.yml"
+TEST_CMD=$(yq -r '.test_command // ""' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+TEST_TIMEOUT=$(yq -r '.test_timeout_seconds // 300' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+
+# 2. Makefile with test target
+[ -z "$TEST_CMD" ] && grep -q '^test:' Makefile 2>/dev/null && TEST_CMD="make test"
+
+# 3. Go module
+[ -z "$TEST_CMD" ] && [ -f go.mod ] && TEST_CMD="go test ./..."
+
+# 4. Node.js with test script
+[ -z "$TEST_CMD" ] && [ -f package.json ] && jq -e '.scripts.test' package.json >/dev/null 2>&1 && TEST_CMD="npm test"
+
+# 5. Python project
+[ -z "$TEST_CMD" ] && ([ -f pyproject.toml ] || [ -f setup.py ]) && TEST_CMD="pytest"
+```
+
+If `TEST_CMD` is non-empty, log: `Test command detected: $TEST_CMD (timeout: ${TEST_TIMEOUT}s)`
+If `TEST_CMD` is empty, log: `No test command detected; post-fix test step will be skipped`
+
+**Review hints detection:**
+
+Check if the project provides framework-specific review hints:
+
+```bash
+REVIEW_HINTS_FILE=".specify/review-hints.md"
+REVIEW_HINTS=""
+if [ -f "$REVIEW_HINTS_FILE" ] && [ -s "$REVIEW_HINTS_FILE" ]; then
+  REVIEW_HINTS=$(cat "$REVIEW_HINTS_FILE")
+fi
+```
+
+If `REVIEW_HINTS` is non-empty, the content will be injected into every review agent's preamble (see Common Preamble item 10). If the file does not exist or is empty, agents run with their standard prompts (no error, no warning, silent skip).
 
 ### Step 3: Dispatch Review Agents
 
@@ -128,6 +184,7 @@ Read `.specify/extensions/.registry` and check if `spex-teams` extension is enab
 - Include the list of changed files and their contents
 - **Include the spec text** (spec.md content, if available). Agents need the spec to check code behavior against requirements. Without it, they can only find code-level issues, not spec compliance gaps.
 - Include the hint text (if provided) as additional review focus
+- **Include review hints** (if detected in Step 2): When `REVIEW_HINTS` is non-empty, include item 10 (PROJECT REVIEW HINTS) in the Common Preamble for every agent. Read the file `.specify/review-hints.md` and substitute its content into the preamble template between the `--- BEGIN PROJECT REVIEW HINTS ---` and `--- END PROJECT REVIEW HINTS ---` delimiters. If `REVIEW_HINTS` is empty, omit item 10 entirely from the preamble (do not include empty delimiters).
 
 ### Step 4: Dispatch External Tools (if available)
 
@@ -199,7 +256,7 @@ If a tool times out, crashes, or returns an error:
      file: "relative/path",
      line_start: N,
      line_end: N,
-     category: correctness|architecture|security|production-readiness|test-quality|external,
+     category: correctness|architecture|security|production-readiness|test-quality|external|regression,
      description: "what is wrong",
      rationale: "why it matters",
      fix: "how to fix it",
@@ -242,15 +299,96 @@ For each round:
    - Apply the fix suggestion at the specified location
    - The main conversation agent performs fixes (not review agents)
 5. Stage all changes: `git add <modified files>`
-6. Report: `Fix round N/3: applied N fixes, re-reviewing...`
-7. Re-dispatch review agents on **only the modified files** (narrowed scope)
-8. Merge new findings with existing Minor findings
-9. Gate check:
+6. **Run test suite** (if a test command was detected in Step 2):
+   - If `TEST_CMD` is empty, skip with log: `No test command detected, skipping post-fix test run`
+   - Execute the test command with a timeout:
+     ```bash
+     timeout "${TEST_TIMEOUT:-300}" $TEST_CMD 2>&1
+     TEST_EXIT=$?
+     ```
+   - If the command times out (exit code 124), treat as a test failure:
+     ```
+     Test suite timed out after ${TEST_TIMEOUT}s - treating as failure
+     ```
+   - If `TEST_EXIT = 0`: Report `[Test suite... passed]` and proceed to step 7
+   - If `TEST_EXIT != 0`: Convert test failures to Critical findings:
+     - Parse test output for individual test failure names, files, and messages
+     - For each identifiable test failure, create a finding:
+       ```
+       {
+         source_agent: "test-suite",
+         category: "regression",
+         confidence: 95,
+         severity: "Critical",
+         description: "Test [test name] failed after fix round N: [failure message]",
+         file: "[test file path]",
+         line_start: 0,
+         fix: "Revert or correct the fix that caused the regression"
+       }
+       ```
+     - If the test command exits non-zero but produces no parseable test output, create a single Critical finding:
+       ```
+       {
+         source_agent: "test-suite",
+         category: "regression",
+         confidence: 95,
+         severity: "Critical",
+         description: "Test suite failed with exit code TEST_EXIT (no parseable output). stderr: [available stderr]",
+         file: "",
+         line_start: 0,
+         fix: "Investigate test suite failure; the most recent fix round may have introduced a regression"
+       }
+       ```
+     - Test failures consume a fix round (same as review findings). The failures become Critical findings and enter the next round for fixing.
+     - Report: `[Test suite... N failures]`
+7. Report: `Fix round N/3: applied N fixes, re-reviewing...`
+8. Re-dispatch review agents on **only the modified files** (narrowed scope)
+9. Merge new findings with existing Minor findings (and any test-suite findings from step 6)
+10. Gate check:
    - If Critical + Important = 0: **GATE PASS**, exit loop
    - If round < 3: continue to next round
    - If round = 3: **GATE FAIL**, exit loop
 
 **No user approval needed.** Fixes are applied autonomously. The user reviews all accumulated changes after the loop completes via `git diff`.
+
+### Step 7b: Post-Fix Spec Compliance Check
+
+**This step is MANDATORY when the fix loop removed code (deleted lines, removed functions, or deleted files).** Code removal is the operation most likely to silently drop a spec requirement. Edits and additions don't carry the same risk.
+
+After the fix loop completes (regardless of PASS or FAIL), check if any fix round removed code:
+
+```bash
+# Check if any fix round deleted lines
+REMOVED_LINES=$(git diff --stat HEAD~1 2>/dev/null | grep -oE '[0-9]+ deletion' | head -1)
+```
+
+If code was removed AND a spec is available:
+
+1. Read the spec's functional requirements (all FR-NNN entries or requirement bullet points)
+2. For each functional requirement, verify that at least one code path still implements it:
+   - Search for key terms, function names, or class names associated with the requirement
+   - Check that the implementation file still exists
+   - Verify the function/method body is not empty or a stub
+3. Build a coverage check:
+
+```
+Post-fix spec coverage:
+  FR-001: parse JSONL events         → agent_eval/events.py:parse_events()  ✓
+  FR-002: event type discriminator   → agent_eval/events.py:EventType       ✓
+  ...
+  FR-009: tool result from user msgs → MISSING (removed in fix round 1)     ✗
+```
+
+4. If any FR is MISSING or STUB:
+   - Add a new Critical finding for each: `"Spec requirement FR-NNN dropped during fix loop: [requirement text]"`
+   - If the fix loop has remaining rounds (< 3), run another fix round to re-implement the dropped requirements
+   - If max rounds reached, report the dropped requirements as Critical findings in the gate outcome
+
+5. Update the gate outcome:
+   - If dropped requirements were re-implemented successfully: maintain GATE PASS
+   - If dropped requirements remain: **GATE FAIL** (spec coverage gaps override code quality PASS)
+
+If no code was removed, or no spec is available, skip this step.
 
 ### Step 8: Write review-findings.md
 
@@ -305,7 +443,7 @@ If remaining: explain what needs to happen to resolve it.]
 [If CodeRabbit or Copilot reported this finding, include their analysis:]
 
 **External tool analysis (CodeRabbit):**
-> [Preserve the full rationale from CodeRabbit's output. This gives
+> [Preserve the full rationale from the external tool's output. This gives
 > reviewers the external AI's perspective, which may differ from or
 > complement the internal agent's analysis.]
 
@@ -313,6 +451,37 @@ If remaining: explain what needs to happen to resolve it.]
 [Same structure. Every finding gets the full treatment.]
 
 ...
+
+## Post-Fix Spec Coverage
+
+[If Step 7b ran, include the coverage check results:]
+
+| Requirement | Implementation | Status |
+|-------------|---------------|--------|
+| FR-001: ... | file.py:func() | ✓ |
+| FR-009: ... | MISSING (removed in fix round 1) | ✗ |
+
+[If all FRs covered: "All spec requirements verified after fix loop."]
+[If any dropped: "N spec requirements dropped during fix loop and flagged as Critical findings."]
+
+## Test Suite Results
+
+[If test suite was executed during the fix loop, include results per round:]
+
+| Round | Test Command | Exit Code | Failures | Status |
+|-------|-------------|-----------|----------|--------|
+| 1     | make test   | 0         | 0        | passed |
+| 2     | make test   | 1         | 3        | failed |
+| ...   | ...         | ...       | ...      | ...    |
+
+[If test failures were converted to findings, list them:]
+
+Test-originated findings:
+- FINDING-N: Test [name] failed after fix round N: [message] (regression, Critical)
+- ...
+
+[If no test command was detected: "No test command detected; post-fix test step was skipped."]
+[If test suite passed in all rounds: "Test suite passed in all fix rounds."]
 
 ## Remaining Findings
 
@@ -343,6 +512,7 @@ Review Agents:
 | Test Quality            |     N |     N |         N | completed |
 | CodeRabbit (external)   |     N |     N |         N | completed/skipped/failed |
 | Copilot (external)      |     N |     N |         N | completed/skipped/failed |
+| Test Suite (regression) |     N |     N |         N | passed/N failures/skipped |
 |-------------------------|-------|-------|-----------|-----------|
 | Total                   |     N |     N |         N |           |
 
@@ -355,6 +525,8 @@ Remaining findings (N Important):
   - [Finding summary] (agent-name, file:line)
   ...
 
+Post-fix spec coverage: N/N requirements verified [✓ all covered | ✗ N dropped]
+
 Details: review-findings.md
 ```
 
@@ -364,11 +536,33 @@ Details: review-findings.md
 - "Key fixes applied" lists up to 10 most significant fixes, grouped by theme
 - "Remaining findings" lists only Critical and Important severity items
 - If gate PASSED with zero remaining: omit the "Remaining findings" section
-- If CodeRabbit was skipped: show reason (e.g., "skipped (CLI not installed)" or "skipped (disabled in config)")
+- If an external tool was skipped: show reason (e.g., "skipped (CLI not installed)" or "skipped (disabled in config)")
+
+### Step 10: Update Flow State
+
+**MANDATORY: Update flow state.** This MUST run after deep review completes (regardless of gate outcome). Deep review completing means the code review phase is done, even if findings remain. Use the flow state script:
+
+```bash
+FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
+```
+
+This ensures the status line shows `R ✓` after deep review finishes, since review-code delegates to deep review and its own final state update may not execute.
+
+### Step 11: Next Steps (tell the user)
+
+After deep review passes, tell the user:
+
+```
+Deep review complete. To close out this feature:
+  1. /clear                    (free context for final gate)
+  2. /speckit-spex-finish       (verify + merge/PR, all-in-one)
+```
+
+This prompt is mandatory on every PASS exit. The user needs to know how to finalize.
 
 ---
 
-## Finding Output Schema
+## Reference: Finding Output Schema
 
 Each review agent MUST return findings in this exact format:
 
@@ -413,7 +607,7 @@ No issues found. Code was reviewed twice to confirm.
 
 ---
 
-## Agent Prompts
+## Reference: Agent Prompts
 
 ### Common Preamble (included in every agent prompt)
 
@@ -472,6 +666,18 @@ IMPORTANT INSTRUCTIONS - READ BEFORE REVIEWING:
    - Metrics or observability the spec requires but code doesn't expose
    - Error codes or status codes that differ from the spec
    - Behavioral differences on edge cases (last iteration, empty input, etc.)
+
+10. PROJECT REVIEW HINTS: [CONDITIONAL - only include this item when
+    `.specify/review-hints.md` exists and is non-empty]
+
+    The following framework-specific patterns have been identified by the
+    project maintainers. Use this knowledge when reviewing code. These
+    patterns describe non-obvious behaviors that may not be apparent from
+    reading the code alone.
+
+    --- BEGIN PROJECT REVIEW HINTS ---
+    [contents of .specify/review-hints.md]
+    --- END PROJECT REVIEW HINTS ---
 ```
 
 ### Agent 1: Correctness
@@ -530,6 +736,50 @@ For Bash specifically:
 - [ ] Unquoted variables: Can word splitting cause unexpected behavior?
 - [ ] Exit codes: Are command failures checked? Is `set -e` or explicit checks used?
 - [ ] Subshell variable scope: Are variables set in subshells expected in parent?
+
+SWALLOWED ERROR DETECTION:
+
+For all languages, check for functions that call fallible operations (API server
+calls, file I/O, network requests, database queries) and log the error but do
+NOT return or propagate it to the caller. Silent error swallowing hides failures
+and prevents callers from reacting appropriately.
+
+For all languages:
+- [ ] Swallowed errors: Are there functions that call a fallible operation,
+      check or catch the error, log it (or discard it), but do not return,
+      re-raise, or propagate the error? Flag with category = "correctness",
+      confidence = 85. Include the specific function name and line number.
+
+For Go specifically:
+- [ ] Pattern: `if err != nil { log.Error(err, ...); }` without a subsequent
+      `return err` or `return fmt.Errorf(...)`. The error is logged but the
+      function continues as if it succeeded.
+- [ ] Pattern: `_ = someFunc()` where someFunc returns an error from an I/O
+      or API call. The error is explicitly discarded.
+
+For Python specifically:
+- [ ] Pattern: `except SomeException as e: logger.error(e)` without a
+      subsequent `raise` or `raise ... from e`. The exception is caught,
+      logged, and silently swallowed.
+- [ ] Pattern: `except: pass` or `except Exception: pass` that swallows
+      errors from I/O or network operations.
+
+For JavaScript/TypeScript specifically:
+- [ ] Pattern: `.catch(err => console.error(err))` without re-throwing or
+      returning a rejected promise. The error is logged but the promise
+      chain continues as resolved.
+- [ ] Pattern: `try { ... } catch(e) { console.log(e); }` without re-throw.
+
+For Bash specifically:
+- [ ] Pattern: `some_command || echo "failed"` where the failure of
+      some_command should cause the script to exit or return non-zero.
+
+INTENTIONAL SWALLOW HANDLING:
+- [ ] If a function swallows an error but explicitly documents WHY (e.g.,
+      a comment like "best-effort cleanup", "fire-and-forget", or
+      "intentionally ignoring error because..."), produce a Minor finding
+      (not Critical) with reduced confidence (50-60). The documentation
+      shows the developer considered the error path.
 ```
 
 ### Agent 2: Architecture & Idioms
@@ -728,11 +978,38 @@ CHECKLIST - Check each item against the code:
       they generic (Test1, Test2, TestHandler)?
 - [ ] Fixture management: Are test fixtures (setup/teardown) clean? Can
       leftover state from a failed test affect subsequent tests?
+
+SPEC-ANCHORED VALIDATION (when a spec is provided):
+
+When the spec includes acceptance scenarios (Given/When/Then blocks), cross-
+reference them against the actual test code:
+
+- [ ] For each acceptance scenario in the spec, find the corresponding test(s).
+      If no test exists for a scenario, flag it as a Missing coverage finding.
+- [ ] Check whether the test's verification method matches the spec's expected
+      method. For example, if the spec says "confirm via kubectl get -o yaml",
+      verify the test actually reads back from the API server, not just an
+      in-memory object. If the spec says "verify the HTTP response body",
+      verify the test checks the response body, not just the status code.
+      Flag mismatches as: "Spec acceptance scenario requires verification via
+      [spec method], but test only checks [actual method]."
+      Use category = "test-quality", confidence = 80.
+- [ ] If an acceptance scenario does not specify a verification method (e.g.,
+      "card data is populated" without saying how to check), verify a test
+      exists for the scenario but do NOT flag a verification method mismatch.
+- [ ] If an acceptance scenario references external systems not available in
+      the test environment (e.g., "verify via production monitoring dashboard"),
+      note the scenario exists but mark verification method match as
+      informational only (not a finding). Log: "Scenario references external
+      system [system]; cannot validate verification method in test environment."
+
+If no spec is available for the review, skip spec-anchored validation entirely
+and perform the standard checklist review only.
 ```
 
 ---
 
-## Hint Injection
+## Reference: Hint Injection
 
 When the user provides hint text via `/speckit-spex-gates-review-code <hint>`, append this section to each agent's prompt:
 
@@ -748,7 +1025,7 @@ and look for issues you might otherwise consider borderline.
 
 ---
 
-## Progress Reporting
+## Reference: Progress Reporting
 
 Throughout the review, output progress updates to keep the user informed:
 
@@ -765,7 +1042,9 @@ Stage 2: Multi-perspective review (N changed files)
 
 Merging findings: N total, N after dedup (N Critical, N Important, N Minor)
 [Fix round 1/3: addressing N Critical + N Important findings...]
-[Fix round 1/3: applied N fixes, re-reviewing...]
+[Fix round 1/3: applied N fixes]
+[Test suite... passed] or [Test suite... N failures] or [No test command detected, skipping post-fix test run]
+[Fix round 1/3: re-reviewing...]
 Gate: PASS|FAIL
 ```
 
@@ -773,15 +1052,16 @@ In parallel mode (teams extension), agents complete in non-deterministic order. 
 
 ---
 
-## Gate Behavior
+## Reference: Gate Behavior
 
 The gate outcome depends on the invocation context:
 
 **Superpowers context** (triggered as quality gate from `/speckit-implement`):
-- **PASS**: Allow proceeding to `speckit-spex-gates-stamp`
+- **PASS**: Allow proceeding to `speckit-spex-finish`
 - **FAIL**: Block completion. The user must resolve remaining findings before the implementation can proceed.
 
 **Manual context** (user runs `/speckit-spex-gates-review-code` directly):
 - **PASS** or **FAIL**: Advisory only. Report findings and let the user decide. Do NOT block further commands.
 
 The invocation context is determined by the caller. When invoked from the superpowers quality gate in `speckit-implement`, the context is `superpowers`. When invoked directly, the context is `manual`.
+

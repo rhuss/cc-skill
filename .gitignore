@@ -1,10 +1,10 @@
 # Claude Code local settings
-.claude/settings.local.json
 
-# spex: generated/local files
-.claude/skills/
-.specify/.spex-phase
-.specify/.spex-state
+# spex: generated/local files (only constitution is committed)
+**/.claude/
+**/.specify/**
+!**/.specify/memory/
+!**/.specify/memory/constitution.md
 
 # macOS
 .DS_Store
