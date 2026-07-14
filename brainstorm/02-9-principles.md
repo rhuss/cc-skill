@@ -1,7 +1,8 @@
 # Brainstorm: Integrating 9 Skill Design Principles
 
 Date: 2026-05-11
-Status: open
+Status: parked
+Superseded-by: 05-three-layer-linting.md
 Source: "9 Principles That Separate Useful Skills from Markdown Essays" by Bilgin Ibryam (generativeprogrammer.com)
 
 ## Trigger
