@@ -1,0 +1,261 @@
+name: cc-skill-enhancer-eval
+description: Evaluate skill:enhance — rewrites SKILL.md files by applying missing or weak skill-authoring patterns
+skill: "skill:enhance"
+
+execution:
+  mode: case
+  arguments: "{skill_path}"
+
+runner:
+  type: claude-code
+  plugin_dirs:
+    - skill
+
+models:
+  skill: claude-opus-4-6
+  judge: claude-opus-4-6
+  hook: claude-sonnet-4-6
+
+permissions:
+  allow:
+    - "Skill"
+  deny: []
+
+mlflow:
+  experiment: cc-skill-enhancer-eval
+
+dataset:
+  path: cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: YAML with 'skill_path' (relative path to the SKILL.md file
+      to enhance, provisioned as a companion file in the case directory).
+    - annotations.yaml: Expected evaluation metadata including:
+      - 'quality_tier' (string — 'high', 'medium', or 'low' quality of the input skill)
+      - 'expected_absent' (list of pattern numbers expected absent in baseline)
+      - 'expected_present' (list of pattern numbers expected present but not strong)
+      - 'expected_strong' (list of pattern numbers expected strong in baseline)
+      - 'expected_improvements' (list of pattern numbers that should improve after enhancement)
+      - 'is_already_optimal' (boolean — true if all applicable patterns are already strong)
+      - 'original_line_count' (integer — approximate line count of input SKILL.md)
+    - answers.yaml: Guidance for the AskUserQuestion hook (the skill asks
+      Apply/Skip at the end). Should contain:
+      - 'apply_decision': 'Apply' or 'Skip' (whether to write the enhanced file)
+    - target-skill/SKILL.md: The actual SKILL.md file to be enhanced.
+      This is provisioned into the workspace so the skill can read it.
+
+inputs:
+  tools:
+    - match: Questions asked to the user via AskUserQuestion (Apply/Skip decision gate)
+      prompt: |
+        Answer based on the test case context in input.yaml and answers.yaml.
+        If answers.yaml specifies apply_decision, use that value.
+        Default: pick 'Skip' to avoid writing files during eval.
+
+outputs:
+  - path: output
+    schema: |
+      This is primarily a stdout/conversation skill. The conversation contains:
+      1. Steps Executed: table listing which of the 9 steps ran and which were skipped
+      2. Enhanced Skill: full rewritten SKILL.md text with YAML frontmatter
+         (only present if the input skill is not already optimal)
+      3. What Changed: table with columns Pattern/What was added or changed/Why
+         (only present if not already optimal)
+      4. New Files (optional): table listing companion files if Progressive Disclosure
+         file splitting was triggered (reference.md, examples.md, gotchas.md)
+      5. Status Change: table with columns Pattern/Before/After showing pattern
+         status improvements
+      6. Summary line: "X patterns improved, Y new files proposed"
+      Special case: if already optimal, shows a "Patterns Applied Effectively"
+      strength assessment table instead of enhancement output.
+      Judges should use {{ conversation }} to access this output.
+
+      If the user selects "Apply", modified files appear in outputs["modified_files"]
+      as the rewritten SKILL.md and any companion files. If "Skip" is selected
+      (default for eval), no files are modified.
+
+traces:
+  stdout: true
+  stderr: true
+  events: true
+  metrics: true
+
+judges:
+  - name: budget_check
+    builtin: cost_budget
+    arguments:
+      max_cost_usd: 5.0
+
+  - name: output_completeness
+    description: |
+      Verify the output includes all required sections: steps executed log,
+      enhanced skill (or optimal assessment), changelog, and status changes.
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      issues = []
+      is_optimal = "already well-crafted" in text.lower() or "already optimal" in text.lower()
+      if not re.search(r'[Ss]teps?\s+[Ee]xecuted', text):
+          issues.append("Missing Steps Executed section")
+      if not is_optimal:
+          if not re.search(r'[Ee]nhanced\s+[Ss]kill', text):
+              issues.append("Missing Enhanced Skill section")
+          if not re.search(r'[Ww]hat\s+[Cc]hanged', text):
+              issues.append("Missing What Changed table")
+          if not re.search(r'[Ss]tatus\s+[Cc]hange', text):
+              issues.append("Missing Status Change table")
+      if issues:
+          return (False, "; ".join(issues))
+      return (True, "All required sections present" + (" (optimal path)" if is_optimal else ""))
+
+  - name: pattern_evaluation
+    description: |
+      Verify that all 14 patterns are mentioned in the baseline evaluation
+      and that status values are valid (strong/present/absent/N/A).
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      valid = {"strong", "present", "absent", "n/a"}
+      statuses = re.findall(r'\|\s*\d+\s*\|[^|]+\|[^|]+\|\s*(\w[\w/]*)\s*\|', text)
+      if not statuses:
+          statuses = re.findall(r'(?:strong|present|absent|N/A)', text, re.IGNORECASE)
+      status_count = sum(1 for s in statuses if s.lower() in valid)
+      if status_count < 14:
+          return (False, f"Only {status_count} valid pattern statuses found (expected 14)")
+      return (True, f"{status_count} pattern statuses found")
+
+  - name: frontmatter_preserved
+    description: |
+      Verify the enhanced SKILL.md text preserves the original frontmatter
+      fields (name, description) in the rewrite.
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      is_optimal = "already well-crafted" in text.lower() or "already optimal" in text.lower()
+      if is_optimal:
+          return (True, "Already optimal — no rewrite to check")
+      enhanced = text[text.find("Enhanced Skill"):] if "Enhanced Skill" in text else ""
+      if not enhanced:
+          return (False, "No Enhanced Skill section found")
+      has_frontmatter = "---" in enhanced
+      has_name = "name:" in enhanced
+      has_desc = "description:" in enhanced
+      if not has_frontmatter:
+          return (False, "Enhanced skill missing YAML frontmatter delimiters")
+      if not has_name:
+          return (False, "Enhanced skill missing 'name' field")
+      if not has_desc:
+          return (False, "Enhanced skill missing 'description' field")
+      return (True, "Frontmatter preserved with name and description")
+
+  - name: changelog_specificity
+    description: |
+      Evaluate whether each What Changed entry references specific skill content
+      and provides domain-specific reasoning rather than generic pattern descriptions.
+    prompt: |
+      You are evaluating the changelog of a skill enhancement operation.
+
+      Here is the full enhancement output:
+
+      {{ conversation }}
+
+      Examine the "What Changed" table (if present). For each row:
+      1. Does the "What was added/changed" column reference specific content
+         from the skill being enhanced (section names, field names, actual phrases)?
+      2. Does the reasoning column explain why in terms of the skill's domain,
+         not just generic pattern definitions?
+      3. Is each change clearly tied to a specific pattern improvement?
+
+      If the skill was already optimal (no What Changed table), score 5.
+
+      Score on a 1-5 scale:
+      Score 1: All entries are generic or restate pattern definitions
+      Score 2: Some entries reference skill content but most are vague
+      Score 3: Most entries reference specific content, a few are generic
+      Score 4: Nearly all entries are specific and domain-aware
+      Score 5: All entries reference specific skill content with clear reasoning
+
+  - name: proportionality
+    description: |
+      Evaluate whether the enhanced skill is proportional to the original.
+      Short skills should not be over-engineered; growth must be justified
+      by the patterns applied.
+    prompt: |
+      You are evaluating whether a skill enhancement is proportional.
+
+      Here is the enhancement output:
+
+      {{ conversation }}
+
+      And here are the annotations for this test case:
+
+      {{ annotations }}
+
+      Estimate:
+      1. Original skill length (from annotations.original_line_count if available,
+         or inferred from content)
+      2. Enhanced skill length (count lines in the Enhanced Skill section)
+      3. The ratio of enhanced to original length
+
+      Guidelines:
+      - A 50-line skill growing to 75 lines (1.5x) is reasonable
+      - A 50-line skill growing to 200 lines (4x) needs strong justification
+      - A 200-line skill growing to 300 lines (1.5x) is fine if many patterns were absent
+      - Growth should correlate with the number and type of patterns applied
+
+      If already optimal (no rewrite), score 5.
+
+      Score on a 1-5 scale:
+      Score 1: Growth ratio exceeds 3x with unclear justification
+      Score 2: Growth ratio 2-3x with limited justification
+      Score 3: Growth ratio 1.5-2x with some justification
+      Score 4: Growth ratio 1.2-1.5x, well-justified by patterns applied
+      Score 5: Growth ratio under 1.2x or already optimal
+
+  - name: intent_preservation
+    description: |
+      Verify the enhanced skill still performs the same task and has not
+      drifted in purpose, scope, or behavior.
+    prompt: |
+      You are verifying that a skill enhancement preserves the original intent.
+
+      Here is the enhancement output:
+
+      {{ conversation }}
+
+      Focus on:
+      1. Does the enhanced skill still solve the same problem?
+      2. Are there any new required inputs or workflow steps that change
+         how a user would invoke the skill?
+      3. Has the scope expanded or contracted?
+      4. Could someone using the original switch to the enhanced version
+         without relearning anything?
+
+      Score on a 1-5 scale:
+      Score 1: Purpose or scope has materially changed
+      Score 2: Significant new requirements or workflow changes
+      Score 3: Mostly the same with some additions that change usage
+      Score 4: Same purpose with minor clarifications and improvements
+      Score 5: Functionally identical, only structure and clarity improved
+
+thresholds:
+  budget_check:
+    min_pass_rate: 1.0
+  output_completeness:
+    min_pass_rate: 1.0
+  pattern_evaluation:
+    min_pass_rate: 1.0
+  frontmatter_preserved:
+    min_pass_rate: 1.0
+  changelog_specificity:
+    min_mean: 3.5
+  proportionality:
+    min_mean: 3.5
+  intent_preservation:
+    min_mean: 4.0

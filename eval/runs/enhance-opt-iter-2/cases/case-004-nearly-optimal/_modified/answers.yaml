@@ -1,5 +1,0 @@
-apply_choice: "Apply"
-guidance: >
-  When asked to Apply or Skip the enhanced skill, always choose Apply.
-  If the skill is already optimal and no apply/skip choice is presented,
-  that is also acceptable.

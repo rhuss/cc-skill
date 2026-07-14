@@ -1,0 +1,20 @@
+quality_tier: medium
+expected_strong:
+  - 1   # Activation Metadata — good name, description with triggers and exclusions, argument-hint
+  - 2   # Exclusion Clause — "Do NOT use for seed data or backups"
+  - 10  # Execution Checklist — numbered steps with clear sequence
+expected_present:
+  - 5   # Control Tuning — --status and --rollback flags but no --dry-run
+  - 7   # Template Scaffold — bash examples but no output template
+  - 8   # In-Skill Examples — bash commands inline but no dedicated examples
+  - 12  # Plan-Validate-Execute — checks status then runs, but rollback is afterthought not integrated
+expected_absent:
+  - 3   # Context Budget — no allowed-tools restriction
+  - 6   # Explain-the-Why — no explanation of why this workflow matters
+  - 9   # Known Gotchas — production migration risks not called out despite being dangerous
+  - 11  # Self-Correcting Loop — no error recovery if migration fails partway
+expected_na:
+  - 4   # Progressive Disclosure — not long enough to need splitting
+  - 13  # Utility Bundle — scripts referenced but simple enough to not need bundling
+  - 14  # Autonomy Calibration — production confirmation covers the judgment call
+total_applicable: 11

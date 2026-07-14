@@ -1,0 +1,20 @@
+quality_tier: medium
+expected_strong:
+  - 1   # Activation Metadata — name, description with triggers and exclusions, allowed-tools
+  - 2   # Exclusion Clause — "Not for actually upgrading packages"
+  - 3   # Context Budget — allowed-tools explicitly limited to Read, Bash, Glob
+  - 10  # Execution Checklist — clear numbered steps
+expected_present:
+  - 7   # Template Scaffold — output table format described but no full template
+  - 8   # In-Skill Examples — command examples inline but no dedicated section
+  - 12  # Plan-Validate-Execute — detects ecosystem then scans, some validation
+expected_absent:
+  - 5   # Control Tuning — no flags for filtering severity, skipping checks, etc.
+  - 6   # Explain-the-Why — no explanation of why this workflow or these checks matter
+  - 9   # Known Gotchas — no warnings about rate limits, network requirements, false positives
+  - 11  # Self-Correcting Loop — no error handling if audit tools are not installed
+expected_na:
+  - 4   # Progressive Disclosure — not long enough
+  - 13  # Utility Bundle — read-only skill, no scripts to bundle
+  - 14  # Autonomy Calibration — no judgment calls, purely analytical
+total_applicable: 11

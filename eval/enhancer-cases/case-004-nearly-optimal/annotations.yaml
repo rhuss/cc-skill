@@ -1,8 +1,0 @@
-description: >
-  A well-crafted API test skill with most patterns already strong.
-  Tests whether the enhancer correctly identifies minimal improvement
-  opportunities or triggers the already-optimal path. At most 1-2
-  patterns should improve.
-expected_absent_patterns: []
-expected_improvements: 0
-skill_line_count: 120

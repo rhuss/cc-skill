@@ -1,0 +1,23 @@
+quality_tier: medium
+expected_absent:
+  - 6   # Explain-the-Why — no rationale for why scaffolding matters
+  - 9   # Known Gotchas — no warnings about overwriting, naming conflicts
+  - 11  # Self-Correcting Loop — no recovery if generation fails
+expected_present:
+  - 1   # Activation Metadata — has name, description, argument-hint, allowed-tools but description lacks exclusions
+  - 2   # Exclusion Clause — no explicit exclusion
+  - 3   # Context Budget — allowed-tools set but no budget rationale
+  - 5   # Control Tuning — has --method flag but limited options
+  - 7   # Template Scaffold — mentions following conventions but no concrete template
+  - 8   # In-Skill Examples — no dedicated examples
+  - 10  # Execution Checklist — numbered steps but generic
+  - 12  # Plan-Validate-Execute — detects framework then generates, but loosely
+expected_strong: []
+expected_improvements:
+  - 1   # Description should add triggers and exclusion clause
+  - 6   # Should explain why scaffolding saves time
+  - 7   # Should show concrete output template/example
+  - 9   # Should warn about existing files, naming conflicts, framework detection failure
+  - 10  # Steps should be more specific with error handling
+is_already_optimal: false
+original_line_count: 55

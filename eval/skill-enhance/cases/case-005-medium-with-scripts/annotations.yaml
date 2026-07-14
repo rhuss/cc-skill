@@ -1,0 +1,23 @@
+quality_tier: medium
+expected_absent:
+  - 2   # Exclusion Clause — no exclusions
+  - 3   # Context Budget — no tool restrictions
+  - 5   # Control Tuning — no flags (no --format, --include-merges, etc.)
+  - 6   # Explain-the-Why — no explanation of why changelogs matter or why this format
+  - 9   # Known Gotchas — no warnings about inconsistent commit messages, tags not pushed
+  - 11  # Self-Correcting Loop — no recovery if git commands fail
+expected_present:
+  - 1   # Activation Metadata — has name, description, argument-hint but description lacks exclusions
+  - 7   # Template Scaffold — shows output format but it's inside a step, not standalone
+  - 8   # In-Skill Examples — bash commands inline but no example output
+  - 10  # Execution Checklist — numbered steps
+  - 12  # Plan-Validate-Execute — determines range then generates, some structure
+expected_strong: []
+expected_improvements:
+  - 1   # Description should clarify triggers
+  - 2   # Should exclude manual changelog editing
+  - 5   # Should add --format, --include-merges flags
+  - 6   # Should explain why Keep a Changelog format
+  - 9   # Should warn about non-conventional commits, missing tags, shallow clones
+is_already_optimal: false
+original_line_count: 55

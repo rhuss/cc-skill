@@ -1,0 +1,20 @@
+quality_tier: high
+expected_strong:
+  - 1   # Activation Metadata — name, description with triggers/exclusions, argument-hint, allowed-tools
+  - 2   # Exclusion Clause — "Do NOT use for production" explicit
+  - 5   # Control Tuning — --dry-run and --skip-tests flags
+  - 6   # Explain-the-Why — "Why This Skill Exists" section, inline "why" explanations
+  - 9   # Known Gotchas — "Common mistake" callouts, rollback caveat about migrations
+  - 10  # Execution Checklist — numbered steps with clear sequence
+expected_present:
+  - 3   # Context Budget — allowed-tools present but no explicit budget discussion
+  - 7   # Template Scaffold — error handling table but no output template
+  - 8   # In-Skill Examples — bash examples inline but no separate example section
+  - 11  # Self-Correcting Loop — rollback on failure but no retry logic
+  - 12  # Plan-Validate-Execute — validates then deploys, but no explicit plan phase
+  - 13  # Utility Bundle — scripts referenced but not bundled in skill directory
+expected_absent: []
+expected_na:
+  - 4   # Progressive Disclosure — skill is ~100 lines, not long enough to need splitting
+  - 14  # Autonomy Calibration — straightforward deployment, no judgment calls needed
+total_applicable: 12
