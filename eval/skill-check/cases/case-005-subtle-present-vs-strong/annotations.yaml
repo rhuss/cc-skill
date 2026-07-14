@@ -1,0 +1,22 @@
+quality_tier: medium
+# This case tests the subtle distinction between "present" and "strong" ratings.
+# Many patterns exist here but in a weak or incomplete form.
+expected_strong:
+  - 1   # Activation Metadata — name, description, argument-hint, allowed-tools all present
+expected_present:
+  - 2   # Exclusion Clause — no explicit exclusion, but description scopes to "unit tests"
+  - 3   # Context Budget — allowed-tools set but no discussion of token budget
+  - 5   # Control Tuning — no flags at all, just a fixed workflow
+  - 6   # Explain-the-Why — "Why This Exists" section present but brief and generic
+  - 7   # Template Scaffold — mentions "follow project conventions" but no concrete template
+  - 8   # In-Skill Examples — generic bash placeholder, not a real example
+  - 9   # Known Gotchas — "Tips" section exists but is generic advice, not specific warnings
+  - 10  # Execution Checklist — numbered steps but Step 4 is vague ("detect and run")
+  - 11  # Self-Correcting Loop — Step 4 mentions "fix" but no structured retry loop
+  - 12  # Plan-Validate-Execute — analyzes then writes then runs, but loosely structured
+expected_absent: []
+expected_na:
+  - 4   # Progressive Disclosure — not long enough
+  - 13  # Utility Bundle — no scripts needed
+  - 14  # Autonomy Calibration — no judgment calls
+total_applicable: 12

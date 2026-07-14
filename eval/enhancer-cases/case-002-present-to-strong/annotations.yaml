@@ -1,9 +1,0 @@
-description: >
-  A config validator skill that has most patterns present but few are
-  strong. Error handling exists but is vague. Template exists but has
-  no filled example. Tests the enhancer's ability to strengthen
-  existing patterns rather than adding new ones.
-expected_absent_patterns:
-  - In-Skill Examples
-expected_improvements: 3
-skill_line_count: 85

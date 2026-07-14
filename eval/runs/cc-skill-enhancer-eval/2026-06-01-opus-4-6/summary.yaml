@@ -1,0 +1,291 @@
+judges:
+  budget_check:
+    mean: 1.0
+    pass_rate: 1.0
+  changelog_specificity:
+    mean: 2.6
+    pass_rate: null
+  frontmatter_preserved:
+    mean: 0.4
+    pass_rate: 0.4
+  intent_preservation:
+    mean: 3.4
+    pass_rate: null
+  output_completeness:
+    mean: 0.4
+    pass_rate: 0.4
+  pattern_evaluation:
+    mean: 0.2
+    pass_rate: 0.2
+  proportionality:
+    mean: 2.4
+    pass_rate: null
+per_case:
+  case-001-many-absent-patterns:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $4.12 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: The enhancement operation failed entirely — the target skill file
+        was not found, and no changes were made. There is no 'What Changed' table,
+        no specific content references, no domain-aware reasoning, and no pattern
+        improvements. The output is simply an error message with no enhancement performed.
+      value: 1
+    frontmatter_preserved:
+      judge_type: check
+      rationale: No Enhanced Skill section found
+      value: false
+    intent_preservation:
+      judge_type: llm
+      rationale: The enhancement output is an error message — no actual enhancement
+        was produced. The skill file was not found and no enhanced version was generated.
+        There is no enhanced skill to evaluate for intent preservation. Since there
+        is no output that solves the original problem (or any problem), this represents
+        a complete failure to preserve the original intent.
+      value: 1
+    output_completeness:
+      judge_type: check
+      rationale: Missing Steps Executed section; Missing Enhanced Skill section; Missing
+        What Changed table; Missing Status Change table
+      value: false
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 0 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: 'The enhancement completely failed - it produced no enhanced skill
+        output at all, just an error message. The original skill was 15 lines with
+        low quality and many needed improvements (expected_improvements: [1, 2, 5,
+        6, 9, 10]) and many lines expected to be removed (expected_absent: [2, 3,
+        5, 6, 7, 8, 9, 11, 12]). The skill was not already optimal, yet no enhancement
+        was produced. This is a total failure to perform the task, which is worse
+        than any disproportionate growth. Score 1.'
+      value: 1
+  case-002-present-to-strong:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $4.12 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: Every row in the 'What Changed' table references specific content
+        from the skill being enhanced. For example, Activation Metadata cites the
+        original description text 'Generate a REST API endpoint' and the specific
+        trigger verbs added. Exclusion Clause lists the exact exclusion phrases ('modifying
+        existing endpoints, adding middleware, or non-REST interfaces (GraphQL, WebSocket,
+        gRPC)'). Context Budget references 'up to 2 existing handler files' and quotes
+        the original unbounded instruction 'Look at existing handlers'. Known Gotchas
+        mentions specific API scaffolding pitfalls like silent error-catching handlers
+        and route path shadowing with concrete examples (`/users/:id` vs `/users/search`).
+        Self-Correcting Loop references the original Step 6's 'confirm tests pass'
+        and explains the lack of recovery path. Template Scaffold references the concrete
+        `describe`/`test` block structure for POST /users. Each reasoning column explains
+        why the change matters in terms of the skill's API scaffolding domain (e.g.,
+        'API scaffolding has well-known framework pitfalls that trip up code generators',
+        'prevents accidental overwrites and lets the user catch naming or path issues
+        early'), not just restating pattern definitions. All 11 entries are specific,
+        domain-aware, and clearly tied to pattern improvements.
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill solves the exact same problem: scaffolding a
+        new REST API endpoint with handler, route, types, and tests. The invocation
+        is identical (`api:scaffold <resource-name> [--method ...]`). No new required
+        inputs were added. The workflow steps map directly to the original steps —
+        detect framework, survey patterns, generate handler, register route, create
+        types, generate test, validate — with the only additions being a preview/approval
+        gate (Step 3) and a self-correcting retry loop (Step 8), both of which are
+        internal quality improvements rather than new user-facing requirements. The
+        scope has not expanded (still REST endpoints only, now with explicit exclusions
+        for GraphQL/WebSocket/gRPC that were implicitly out of scope before). A user
+        of the original skill could switch to the enhanced version without relearning
+        anything; they''d simply get a confirmation prompt before file creation and
+        better error recovery. All enhancements are structural clarity, rationale
+        annotations, gotcha warnings, and tighter control — none change what the skill
+        does or how it''s invoked.'
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: 14 pattern statuses found
+      value: true
+    proportionality:
+      judge_type: llm
+      rationale: Growth ratio of approximately 1.53x (55 → ~84 lines) is at the lower
+        boundary of the 1.5-2x range. With 11 patterns improved—3 absent patterns
+        added (Explain-the-Why, Known Gotchas, Self-Correcting Loop) and 8 present
+        patterns strengthened—this growth is well-justified. Each addition is substantive
+        and directly tied to specific pattern improvements. The enhanced content adds
+        meaningful elements like gotcha warnings, retry logic, completion checks,
+        and rationale explanations without excessive padding. Slightly above the 1.5x
+        threshold but strongly justified by the volume of pattern work.
+      value: 4
+  case-003-short-proportionate:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $4.12 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: The enhancement operation failed entirely — no skill was found, no
+        changes were made, and no 'What Changed' table was produced. There is no evidence
+        of any specific, domain-aware modifications or reasoning. The output is simply
+        an error message, so it scores the minimum.
+      value: 1
+    frontmatter_preserved:
+      judge_type: check
+      rationale: No Enhanced Skill section found
+      value: false
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhancement output did not actually produce an enhanced skill.
+        Instead, it resulted in an error (''File not found: target-skill/SKILL.md'')
+        and no enhancement was generated. Since there is no enhanced version to compare
+        against the original, we cannot confirm that the original intent is preserved.
+        The output shows the process failed before any enhancement could be made.
+        This is problematic because a user expecting an enhanced skill would receive
+        nothing usable, effectively changing the scope (from ''a working skill'' to
+        ''no skill at all''). However, since the enhancement didn''t actively change
+        or corrupt the original skill—it simply failed to produce output—the intent
+        hasn''t been materially altered so much as it hasn''t been addressed. I''m
+        scoring this a 3 rather than lower because the original skill remains untouched
+        (no destructive changes), but the enhancement process clearly did not succeed,
+        which means the deliverable is incomplete and a user would need to take additional
+        steps to get the intended result.'
+      value: 3
+    output_completeness:
+      judge_type: check
+      rationale: Missing Steps Executed section; Missing Enhanced Skill section; Missing
+        What Changed table; Missing Status Change table
+      value: false
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 0 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: The enhancement completely failed - it produced no enhanced skill
+        output at all, just error messages. The original skill was 12 lines and classified
+        as low quality with many expected absent lines (9 out of 12) and several expected
+        improvements. The skill needed significant work but received none. While there's
+        no 'growth' per se, the output is a total failure to produce any enhancement,
+        which is the worst possible outcome for proportionality - it's not that it's
+        too large or too small, it simply doesn't exist.
+      value: 1
+  case-004-nearly-optimal:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $4.12 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: 'The single ''What Changed'' row is highly specific and domain-aware.
+        The ''What was added/changed'' column references the exact content added:
+        a filled example after the output template showing a realistic PR review with
+        two findings (the race condition and magic number), a test coverage assessment,
+        and a REQUEST_CHANGES recommendation. The reasoning column explains why in
+        terms of the skill''s domain: it describes how severity levels map to issues,
+        how test coverage connects to findings, and how the recommendation justifies
+        itself — all specific to the PR review context. The change is clearly tied
+        to the Template Scaffold pattern improvement (from ''present'' to ''strong''),
+        and the added example in the enhanced skill itself is concrete and realistic,
+        demonstrating exactly how the template should be used in a code review scenario.'
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: The enhanced skill is functionally identical to the original. The
+        only change is the addition of a filled example after the output template,
+        which demonstrates how the existing template should be used in practice. No
+        new inputs, workflow steps, or requirements were introduced. The procedure
+        steps are unchanged. The scope neither expanded nor contracted. A user of
+        the original skill could switch to the enhanced version without relearning
+        anything — the example is purely illustrative and additive, improving clarity
+        without altering behavior.
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 0 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: The growth ratio is approximately 1.14x (110 to ~125 lines), well
+        under the 1.2x threshold for a score of 5. Only 1 pattern was improved (Template
+        Scaffold from present to strong), and the addition—a filled example for the
+        output template—is concretely justified and proportional to the single gap
+        identified. The skill was already high quality, and the enhancement correctly
+        applied minimal, targeted changes.
+      value: 5
+  case-005-medium-with-scripts:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $4.12 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: The enhancement operation failed entirely — the target file was not
+        found and no changes were made. There is no 'What Changed' table, no specific
+        content references, no domain-aware reasoning, and no pattern improvements.
+        The output is simply an error message. This represents a complete failure
+        to produce any meaningful enhancement, warranting the lowest score.
+      value: 1
+    frontmatter_preserved:
+      judge_type: check
+      rationale: No Enhanced Skill section found
+      value: false
+    intent_preservation:
+      judge_type: llm
+      rationale: The enhancement output failed to produce any actual enhanced skill
+        content — it resulted in an error ('File not found'). Since there is no enhanced
+        skill to compare against the original, we cannot confirm that the original
+        intent is preserved. However, the failure is not due to a deliberate change
+        in purpose or scope; it's a technical failure. There is no enhanced version
+        at all, so a user cannot switch to it. This is worse than a minor clarification
+        (score 4) since there's nothing usable, but the intent wasn't actively changed
+        (which would be score 1-2). The lack of output means the skill is neither
+        preserved nor altered — it simply doesn't exist. Scoring a 3 because while
+        the attempt didn't change scope or purpose deliberately, the complete absence
+        of output means a user cannot use the 'enhanced' version at all, which is
+        a significant practical workflow change.
+      value: 3
+    output_completeness:
+      judge_type: check
+      rationale: Missing Steps Executed section; Missing Enhanced Skill section; Missing
+        What Changed table; Missing Status Change table
+      value: false
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 0 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: The enhancement completely failed - no enhanced skill was produced
+        at all. The output is just an error message about a file not found. This is
+        a total failure to perform the task, and while there's technically no growth
+        (0 lines produced), the enhancement is non-functional. Since the skill was
+        not already optimal (is_already_optimal is False) and there were multiple
+        expected improvements needed, this represents the worst possible outcome.
+      value: 1
+run_id: 2026-06-01-opus-4-6
+run_metrics:
+  cache_hit_rate: 0.94446
+  cost_per_mtok_usd: 1.0689
+  cost_per_turn_usd: 0.05971
+  output_tokens_per_turn: 579.35

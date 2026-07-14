@@ -143,7 +143,7 @@ If code phase sections were preserved from an earlier version (step 4), append t
 
 After writing REVIEWERS.md, check if `gh` is available and offer to create a spec-only PR for review before implementation begins.
 
-Use AskUserQuestion (`multiSelect: false`, header: "Spec PR"):
+present the choice using `AskUserQuestion` (single-select, header: "Spec PR"):
 
 **"REVIEWERS.md is ready. Create a spec PR for team review?"**
 

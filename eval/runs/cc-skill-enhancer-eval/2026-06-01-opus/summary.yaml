@@ -1,0 +1,328 @@
+judges:
+  budget_check:
+    mean: 1.0
+    pass_rate: 1.0
+  changelog_specificity:
+    mean: 5.0
+    pass_rate: null
+  frontmatter_preserved:
+    mean: 1.0
+    pass_rate: 1.0
+  intent_preservation:
+    mean: 4.8
+    pass_rate: null
+  output_completeness:
+    mean: 1.0
+    pass_rate: 1.0
+  pattern_evaluation:
+    mean: 0.6
+    pass_rate: 0.6
+  proportionality:
+    mean: 3.8
+    pass_rate: null
+per_case:
+  case-001-many-absent-patterns:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $2.99 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: 'Every row in the What Changed table references specific content
+        from the log search skill: trigger verbs like ''grep logs, search for errors'',
+        the argument hint ''<search-pattern> [path]'', the 200-line limit tied to
+        log directories being enormous, the concrete output template with grouped
+        matches, the compressed/rotated log gotcha (.gz, .log.1), the halt condition
+        in step 1, and `user-invocable: true` justified by the read-only nature of
+        log searching. The reasoning columns consistently explain changes in terms
+        of the skill''s domain (log searching, context lines for diagnosis, decompressing
+        archives being slow/memory-intensive, tailing vs. searching distinction) rather
+        than restating generic pattern definitions. Each change is clearly tied to
+        a specific named pattern improvement.'
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill preserves the original intent of searching application
+        log files for patterns. The core workflow remains the same: resolve a log
+        directory, search with ripgrep, format results, and report. No new required
+        inputs were added — the pattern and optional path were always implicit. The
+        enhancements are purely structural and clarifying: adding an output template,
+        context lines, a result limit, compressed-log guidance, an exclusion clause,
+        and inline rationale. The scope has not expanded (it still only searches logs)
+        nor materially contracted (compressed logs are noted but not excluded from
+        possibility). A user of the original skill would invoke the enhanced version
+        identically — provide a search pattern and optionally a path — and receive
+        better-structured output. All changes improve clarity and robustness without
+        altering the fundamental purpose or usage pattern.'
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: 24 pattern statuses found
+      value: true
+    proportionality:
+      judge_type: llm
+      rationale: 'I need to assess the proportionality of this enhancement.
+
+
+        **Original skill length**: 15 lines (from annotations)
+
+
+        **Enhanced skill length**: Let me count the lines in the Enhanced Skill section
+        (the '
+      value: 3
+  case-002-present-to-strong:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $2.99 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: Every row in the What Changed table references specific content from
+        the enhanced skill. For example, 'Activation Metadata' cites the exact trigger
+        verbs ('adding, creating, scaffolding') and the inline exclusion clause. 'Context
+        Budget' references 'Step 2 now caps handler reads to 2 files' and 'Step 1
+        names specific dependency files.' 'Known Gotchas' calls out 'handler signature
+        mismatch across framework styles' and 'route conflict detection' — both domain-specific
+        pitfalls for API scaffolding. 'Plan-Validate-Execute' explains that scaffolding
+        multiple files without preview risks misplaced files, grounded in the skill's
+        multi-file creation behavior. 'In-Skill Examples' references the specific
+        invocation '/api:scaffold orders --method POST' and the resource-name-to-file-path
+        mapping. The reasoning columns consistently explain why changes matter in
+        terms of the API scaffolding domain (e.g., 'wrong signature style, duplicate
+        routes,' 'most likely misroutes are editing existing endpoints'), not just
+        restating pattern definitions. Each change is clearly tied to its corresponding
+        pattern.
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill solves the same problem: scaffolding a new REST
+        API endpoint with handler, routes, types, and tests. The core workflow steps
+        are preserved (detect framework, analyze patterns, generate handler, create
+        types/routes, generate tests, verify). No new required inputs have been added
+        — the argument-hint formalizes what was implicit. Scope has not meaningfully
+        expanded or contracted; it still targets REST endpoint scaffolding.\n\nThe
+        one notable workflow change is the addition of Step 3 (Present Scaffold Plan),
+        which introduces a mandatory user approval gate before file creation. This
+        is a new interaction point that didn''t exist in the original — a user switching
+        from the original would encounter this pause. However, this is a reasonable
+        safety gate for a multi-file creation skill rather than a fundamental change
+        in purpose or invocation pattern. The conflict detection (stop if handler
+        file exists) is also new behavior that could surprise a user expecting overwrite.\n\nThe
+        exclusion clause, known gotchas, retry logic, and explain-the-why additions
+        are all clarifications and guardrails rather than scope changes. The invocation
+        syntax remains the same. A user of the original could switch to the enhanced
+        version with minimal adjustment (just the new approval step). This keeps it
+        at a 4 rather than a 5.'
+      value: 4
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: 33 pattern statuses found
+      value: true
+    proportionality:
+      judge_type: llm
+      rationale: 'The enhanced skill grows from approximately 55 lines to roughly
+        70 lines, a ratio of about 1.27x. This is well under the 1.5x threshold and
+        is proportional to the scope of changes: 5 absent patterns added and 7 existing
+        patterns strengthened. The growth is modest, focused, and well-justified by
+        the number and type of patterns applied. No bloat or unnecessary padding is
+        evident.'
+      value: 5
+  case-003-short-proportionate:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $2.99 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: All four rows in the 'What Changed' table reference specific content
+        from the skill being enhanced. Row 1 cites the original description text ('Amend
+        the last commit with staged changes') and names the exact trigger phrases
+        added. Row 2 identifies the precise misroute scenarios (rewording vs. --amend
+        without --no-edit, creating a new commit) grounded in git domain knowledge.
+        Row 3 references the specific command 'git add -A' and explains the domain-relevant
+        distinction between tracked/modified and untracked files. Row 4 addresses
+        the concrete git pitfall of amending pushed commits and force pushes. Every
+        reasoning column explains 'why' in terms of the git:amend domain rather than
+        restating generic pattern definitions. Each change is clearly tied to a named
+        pattern improvement.
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill solves exactly the same problem: stage all changes
+        and amend them into the last commit without changing the commit message. The
+        two operational steps (`git add -A` and `git commit --amend --no-edit`) are
+        identical. No new required inputs or workflow changes were introduced. The
+        scope has neither expanded nor contracted — it still does one thing (amend
+        the last commit with staged changes). The enhancements are purely clarifying:
+        better trigger phrases in the description, exclusion clauses for routing accuracy,
+        an explanation of what `git add -A` does, and a gotcha warning about force-pushing
+        amended commits. None of these change how a user invokes or interacts with
+        the skill. Someone using the original could switch to the enhanced version
+        without relearning anything.'
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 10 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: Growth ratio of 1.25x (12 to 15 lines) is well within the 1.2-1.5x
+        range. Four patterns were applied with clear justification. The enhancements
+        are substantive (activation metadata with trigger phrases, exclusion clauses,
+        known gotchas about force push) and align with expected improvements for patterns
+        1 and 10. The skill remains concise and proportional to its original scope.
+        Slightly docked because pattern 9 (Exclusion Clause) appears in expected_absent
+        but was added anyway, though the addition is reasonable.
+      value: 4
+  case-004-nearly-optimal:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $2.99 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: 'Every row in the ''What Changed'' table references specific content
+        from the PR review skill: the 2000-line threshold with a domain-specific reason
+        (''reviewers lose track of cross-file state''), the correctness-first ordering
+        rationale (''logic errors cause the most user-facing damage''), the filled
+        PR #142 example with critical/warning/info severity levels mapped to the review
+        template, generated-file skipping and severity inflation as review-domain
+        gotchas, and completion checks after Steps 1-4 with explicit dependency declarations
+        (''requires output from Step 2''). The reasoning columns consistently explain
+        why changes matter in terms of code review quality (e.g., ''inflated severities
+        erode reviewer trust'', ''even correct code breaks later without regression
+        tests'') rather than restating generic pattern definitions. Each change is
+        clearly tied to a specific pattern and grounded in the skill''s domain.'
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill solves the exact same problem: reviewing a pull
+        request for code quality, test coverage, and architectural alignment. The
+        invocation is identical — the user provides a PR number with optional flags
+        (--focus, --brief) that were already implied in the original. No new required
+        inputs were added. The five procedural steps (Fetch Diff, Check Issues, Verify
+        Tests, Assess Architecture, Generate Review) remain the same in the same order.
+        The scope has not expanded or contracted — it still covers correctness, security,
+        performance, test coverage, and architectural fit, and still outputs a structured
+        review with a recommendation. The enhancements are purely about clarity and
+        robustness: severity criteria are now explicitly defined (but the categories
+        existed implicitly), a filled example demonstrates the output template, gotchas
+        warn about common pitfalls like reviewing generated files, completion checks
+        make step boundaries explicit, and reasoning is added for why certain decisions
+        are made. A user familiar with the original skill could switch to the enhanced
+        version without relearning anything — the same command, same inputs, same
+        output format, same workflow.'
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: Only 0 valid pattern statuses found (expected 14)
+      value: false
+    proportionality:
+      judge_type: llm
+      rationale: 'The enhanced skill grows from ~110 to ~160 lines (1.45x ratio),
+        which falls in the 1.2-1.5x range. The growth is well-justified: 5 patterns
+        were improved from present to strong, with substantive additions including
+        a severity criteria table, a filled review example, completion checks, and
+        targeted gotchas. Each addition maps to a specific pattern improvement and
+        adds actionable guidance rather than filler.'
+      value: 4
+  case-005-medium-with-scripts:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $2.99 within budget $5.00
+      value: true
+    changelog_specificity:
+      judge_type: llm
+      rationale: 'Every row in the ''What Changed'' table references specific content
+        from the changelog-generation skill being enhanced. For example: the Exclusion
+        Clause row quotes the exact exclusion text added (''Do NOT use for writing
+        narrative release notes, generating commit messages, or comparing branches
+        without release context''); Control Tuning references tag validation, empty-range
+        halt, and the rigid/judgment distinction for categorization vs. scope handling;
+        Explain-the-Why cites specific rationales like `--no-merges`, Keep a Changelog
+        format, and why both breaking change formats must be checked; Known Gotchas
+        references the specific scope-as-subgrouping mistake in conventional commits.
+        The reasoning column consistently explains ''why'' in domain terms — e.g.,
+        ''Conventional commit scopes are commonly misused as changelog sub-sections'',
+        ''Git commands are rigid (exact format)'', ''merge commits duplicate the content
+        of their merged commits''. Each change is clearly tied to a specific pattern
+        improvement, and none of the entries merely restate generic pattern definitions.'
+      value: 5
+    frontmatter_preserved:
+      judge_type: check
+      rationale: Frontmatter preserved with name and description
+      value: true
+    intent_preservation:
+      judge_type: llm
+      rationale: 'The enhanced skill solves the exact same problem: generating a changelog
+        entry from git commits between two tags. The invocation is identical (`/docs:changelog
+        <from-tag> [<to-tag>]`). No new required inputs were added — `to-tag` already
+        defaulted to HEAD, and this is now just explicitly stated. The core workflow
+        (determine range → categorize commits → format changelog → check breaking
+        changes) is preserved with the same steps in the same order. The new Step
+        5 (verify completeness) is an internal quality check, not something the user
+        must do differently. The scope has neither expanded nor contracted — it still
+        generates changelogs from git history between tags. All enhancements are structural
+        improvements: better error handling, rationale for design choices, a concrete
+        example, and a self-correction loop. A user of the original skill would switch
+        to the enhanced version without relearning anything; they would simply get
+        more robust and better-explained behavior.'
+      value: 5
+    output_completeness:
+      judge_type: check
+      rationale: All required sections present
+      value: true
+    pattern_evaluation:
+      judge_type: check
+      rationale: 29 pattern statuses found
+      value: true
+    proportionality:
+      judge_type: llm
+      rationale: Enhanced skill is approximately 120 lines vs 55 original lines, a
+        ~2.18x growth ratio. Eight patterns were improved (5 absent→strong, 3 present→strong),
+        which provides reasonable justification for the expansion. The additions are
+        substantive—tag validation, breaking change detection, self-correcting verification
+        step, end-to-end example, and inline gotchas. However, some sections could
+        be more concise (e.g., the rationale annotations and the breaking change detection
+        explanations are somewhat verbose for this skill's complexity). The ratio
+        falls in the 2-3x range, which needs strong justification; 8 pattern improvements
+        provides decent but not overwhelming justification.
+      value: 3
+run_id: 2026-06-01-opus
+run_metrics:
+  cache_hit_rate: 0.755482
+  cost_per_mtok_usd: 3.1192
+  cost_per_turn_usd: 0.175882
+  output_tokens_per_turn: 2960.12

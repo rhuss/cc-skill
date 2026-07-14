@@ -1,0 +1,20 @@
+quality_tier: low
+expected_strong: []
+expected_present:
+  - 1   # Activation Metadata — has name and description but description is vague, no argument-hint
+  - 10  # Execution Checklist — numbered steps but very sparse
+expected_absent:
+  - 2   # Exclusion Clause — no exclusions defined
+  - 3   # Context Budget — no tool restrictions
+  - 5   # Control Tuning — no flags or options
+  - 6   # Explain-the-Why — no explanation of why this skill exists or why steps matter
+  - 7   # Template Scaffold — no output format defined
+  - 8   # In-Skill Examples — no examples
+  - 9   # Known Gotchas — no warnings or common mistakes
+  - 11  # Self-Correcting Loop — no error recovery
+  - 12  # Plan-Validate-Execute — no validation before execution
+expected_na:
+  - 4   # Progressive Disclosure — too short to split
+  - 13  # Utility Bundle — no scripts needed for this simple task
+  - 14  # Autonomy Calibration — no judgment calls
+total_applicable: 11

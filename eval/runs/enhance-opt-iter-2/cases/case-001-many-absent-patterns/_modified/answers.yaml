@@ -1,5 +1,0 @@
-# answers.yaml - always choose Apply during eval
-apply_choice: "Apply"
-guidance: >
-  When asked to Apply or Skip the enhanced skill, always choose Apply.
-  This ensures the modified file is written to disk for judge evaluation.

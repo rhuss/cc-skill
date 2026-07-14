@@ -1,5 +1,5 @@
 ---
-name: speckit.spex-deep-review.review
+name: speckit.spex-deep-review.run
 description: Multi-perspective code review with autonomous fix loop - dispatches 5 specialized review agents, merges findings, auto-fixes Critical/Important issues
 ---
 
@@ -40,7 +40,9 @@ If external tool settings are provided by the caller, use them directly. If not 
 # Read config defaults from deep-review extension config (all default to true if key is missing)
 DEEP_REVIEW_CONFIG=".specify/extensions/spex-deep-review/deep-review-config.yml"
 DEFAULT_CODERABBIT=$(yq -r '.external_tools.coderabbit // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+DEFAULT_CODERABBIT=${DEFAULT_CODERABBIT:-true}
 DEFAULT_COPILOT=$(yq -r '.external_tools.copilot // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+DEFAULT_COPILOT=${DEFAULT_COPILOT:-true}
 ```
 
 ```
@@ -158,8 +160,8 @@ If `REVIEW_HINTS` is non-empty, the content will be injected into every review a
 
 Read `.specify/extensions/.registry` and check if `spex-teams` extension is enabled (query: `.extensions["spex-teams"].enabled`).
 
-**Sequential mode** (teams NOT enabled):
-- Dispatch each agent one at a time using the Agent tool
+**Sequential mode** (teams NOT enabled, or agent lacks subagent support):
+- Dispatch each review agent one at a time using the Agent tool
 - Each agent gets a fresh, isolated context (no session history)
 - Report progress after each agent completes:
   ```
@@ -167,19 +169,21 @@ Read `.specify/extensions/.registry` and check if `spex-teams` extension is enab
   Agent 2/5: Architecture & Idioms... done, N findings
   ...
   ```
+- **Single-agent fallback**: If the current agent has no subagent mechanism at all, execute all 5 review perspectives sequentially in the current session. Run each perspective's prompt as a separate analysis pass, collecting findings between passes.
 
-**Parallel mode** (teams IS enabled):
-- Dispatch all 5 agents in a single message using multiple Agent tool calls
-- Each agent runs in isolated context
+**Parallel mode** (teams IS enabled and agent supports parallel dispatch):
+Dispatch all agents using multiple **Agent tool** calls in a single message.
+Each agent runs in isolated context with `subagent_type: "general-purpose"`.
+Send all dispatch calls in one response for maximum parallelism.
 - Report progress as each agent completes:
-  ```
+  ```text
   Agent completed: Security... 2 findings
   Agent completed: Test Quality... 0 findings
   ...
   ```
 
-**For each agent dispatch**, use the Agent tool with:
-- `subagent_type: "general-purpose"`
+**For each agent dispatch**, Use the Agent tool with:
+- `subagent_type: "general-purpose"` via the Agent tool
 - The full agent prompt (from the Agent Prompts section below)
 - Include the list of changed files and their contents
 - **Include the spec text** (spec.md content, if available). Agents need the spec to check code behavior against requirements. Without it, they can only find code-level issues, not spec compliance gaps.
@@ -201,10 +205,10 @@ REVIEW_FILES=$(git diff --name-only "${MAIN_BRANCH}...HEAD" 2>/dev/null | grep -
 Then invoke CodeRabbit with the explicit file list:
 ```bash
 # Initial review (Stage 2): review changed source files only
-coderabbit review --agent --no-color --files $REVIEW_FILES 2>&1
+coderabbit review --agent --files $REVIEW_FILES 2>&1
 
 # Fix loop re-review rounds: review only the files that were modified by fixes
-coderabbit review --agent --type uncommitted --no-color 2>&1
+coderabbit review --agent --type uncommitted 2>&1
 ```
 
 The `--agent` flag produces structured, detailed findings with rationale (preferred over `--prompt-only` which only shows prompts). The `--files` flag ensures spec artifacts under `specs/` and `brainstorm/` are never reviewed.
@@ -251,7 +255,7 @@ If a tool times out, crashes, or returns an error:
    ```
    {
      id: "FINDING-N",
-     severity: Critical|Important|Minor,
+     severity: Critical|Important|Minor|Notable,
      confidence: 0-100,
      file: "relative/path",
      line_start: N,
@@ -281,10 +285,12 @@ Count findings by severity:
 - **Critical count**: findings with severity = Critical
 - **Important count**: findings with severity = Important
 - **Minor count**: findings with severity = Minor
+- **Notable count**: findings with severity = Notable
 
 **Gate logic:**
 - If Critical + Important = 0: **GATE PASS**
 - If Critical + Important > 0: proceed to fix loop (or fail if max rounds reached)
+- Notable findings are **excluded** from the gate check. They are informational observations, not actionable issues.
 
 ### Step 7: Autonomous Fix Loop
 
@@ -410,6 +416,7 @@ Write `specs/<feature>/review-findings.md` (overwrite if exists):
 | Critical | N | N | N |
 | Important | N | N | N |
 | Minor | N | - | N |
+| Notable | N | - | N |
 | **Total** | **N** | **N** | **N** |
 
 **Agents completed:** 5/5 (+ N external tools)
@@ -452,6 +459,25 @@ If remaining: explain what needs to happen to resolve it.]
 
 ...
 
+## Notable Observations
+
+[If any findings have severity = Notable, list them here in a simplified format.
+Notable findings are design-level observations, not bugs. They do not have
+resolution tracking since they are not fixed — they are captured for future
+brainstorming.]
+
+### NOTABLE-1
+- **File:** path/to/file.go:42-58
+- **Category:** architecture
+- **Source:** architecture-agent
+- **Description:** [What design-level observation was made]
+- **Rationale:** [Why this is worth revisiting in the future]
+
+### NOTABLE-2
+...
+
+[If no Notable findings: omit this section entirely.]
+
 ## Post-Fix Spec Coverage
 
 [If Step 7b ran, include the coverage check results:]
@@ -490,6 +516,40 @@ format. Explain why they could not be auto-fixed and what human action
 is needed.]
 ```
 
+### Step 8b: Capture Notable Findings to Idea Inbox
+
+After writing `review-findings.md`, if any Notable findings exist, append each to `brainstorm/idea-inbox.md`:
+
+1. **Skip if no Notable findings** exist. This step is only for Notable severity.
+
+2. **Ensure the directory and file exist**:
+   ```bash
+   mkdir -p brainstorm
+   ```
+   **Create the inbox file if it doesn't exist**:
+   ```markdown
+   # Idea Inbox
+
+   Ideas captured from code reviews for future brainstorming.
+   ```
+
+3. **For each Notable finding**, append an entry at the end of the file:
+   ```markdown
+
+   ### <theme-slug>
+
+   - **Source**: deep-review
+   - **Date**: YYYY-MM-DD
+   - **Reference**: <current feature branch name>
+   - **Summary**: <the finding's description, condensed to 1-2 sentences>
+
+   > <the finding's rationale>
+   ```
+
+   Where `<theme-slug>` is derived from the finding's description in kebab-case, condensed to 2-4 words focusing on the core concept (e.g., "interface evolution needed" becomes `interface-evolution-needed`, not the full description). Keep slugs under 40 characters.
+
+4. **Report**: `Captured N Notable observations to brainstorm/idea-inbox.md`
+
 ### Step 9: Report Gate Outcome with Agent Summary
 
 After writing `review-findings.md`, output a tabular console summary showing what each agent found, what was fixed, and the gate outcome. This is the primary output the user sees.
@@ -516,6 +576,9 @@ Review Agents:
 |-------------------------|-------|-------|-----------|-----------|
 | Total                   |     N |     N |         N |           |
 
+Agent Leaderboard MVP: [agent name] ([N] findings)
+  (or: "Clean review: no findings across [N] agents" if all agents found 0)
+
 Key fixes applied:
   1. [Brief description of fix] (agent-name)
   2. [Brief description of fix] (agent-name)
@@ -526,6 +589,9 @@ Remaining findings (N Important):
   ...
 
 Post-fix spec coverage: N/N requirements verified [✓ all covered | ✗ N dropped]
+
+Notable observations: N captured to brainstorm/idea-inbox.md
+  (or: omit this line if no Notable findings)
 
 Details: review-findings.md
 ```
@@ -538,12 +604,46 @@ Details: review-findings.md
 - If gate PASSED with zero remaining: omit the "Remaining findings" section
 - If an external tool was skipped: show reason (e.g., "skipped (CLI not installed)" or "skipped (disabled in config)")
 
+**Agent Leaderboard MVP designation:**
+- After the agent table output, identify the agent with the highest "Found" count (excluding external tools and test-suite rows). If multiple agents tie, pick the first alphabetically.
+- Output: `MVP: {agent name} ({count} findings)`
+- If ALL internal review agents (the 5 core agents) found 0 findings, output instead: `Clean review: no findings across {N} agents` (where N is the count of internal review agents that ran, typically 5). Do not designate an MVP in this case.
+- The MVP line appears between the agent table and the "Key fixes applied" section.
+
+**Layer Comparison (ship mode with checkpoints):**
+After the MVP designation and before "Key fixes applied", check the state file for checkpoint data:
+
+```bash
+SHIP_STATE_FILE="${SHIP_STATE_FILE:-.specify/.spex-state}"
+CP1_FINDINGS=$(jq -r '.checkpoint_1_findings // empty' "$SHIP_STATE_FILE" 2>/dev/null)
+CP2_FINDINGS=$(jq -r '.checkpoint_2_findings // empty' "$SHIP_STATE_FILE" 2>/dev/null)
+```
+
+If `CP1_FINDINGS` or `CP2_FINDINGS` is non-empty (meaning checkpoints ran in this pipeline), output a layer comparison table:
+
+```
+Layer Comparison:
+
+| Layer            | Findings | Fixed | Unique |
+|------------------|----------|-------|--------|
+| Checkpoint 1/3   |        N |     N |      N |
+| Checkpoint 2/3   |        N |     N |      N |
+| Final Review     |        N |     N |      N |
+```
+
+Where:
+- Checkpoint findings/fixed come from the state file (`checkpoint_N_findings`, `checkpoint_N_fixed`)
+- Final Review findings/fixed come from the current deep review run totals
+- "Unique" for each layer represents findings caught only by that layer and not by any other. For checkpoint layers, compare finding descriptions (substring match) against the final review findings. For the final review layer, compare against both checkpoint layers. Since checkpoint findings are stored as counts only (not descriptions), the unique calculation is approximate: if checkpoint findings > 0 and final review also found findings, estimate unique as `max(0, checkpoint_findings - final_findings_in_same_categories)`. If line-level comparison is not possible, show "~N" (approximate) for unique counts.
+
+If no checkpoint data exists in the state file (regular flow, checkpoints disabled, or non-ship invocation), skip the layer comparison entirely. Only show the agent leaderboard.
+
 ### Step 10: Update Flow State
 
 **MANDATORY: Update flow state.** This MUST run after deep review completes (regardless of gate outcome). Deep review completing means the code review phase is done, even if findings remain. Use the flow state script:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
+FLOW_STATE=".specify/extensions/spex-deep-review/scripts/spex-flow-state.sh" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
 ```
 
 This ensures the status line shows `R ✓` after deep review finishes, since review-code delegates to deep review and its own final state update may not execute.
@@ -554,8 +654,9 @@ After deep review passes, tell the user:
 
 ```
 Deep review complete. To close out this feature:
-  1. /clear                    (free context for final gate)
-  2. /speckit-spex-finish       (verify + merge/PR, all-in-one)
+  1. /speckit-spex-smoke-test    (walk through acceptance scenarios)
+  2. /clear                      (free context for final gate)
+  3. /speckit-spex-finish         (verify + merge/PR, all-in-one)
 ```
 
 This prompt is mandatory on every PASS exit. The user needs to know how to finalize.
@@ -570,7 +671,7 @@ Each review agent MUST return findings in this exact format:
 ## Findings
 
 ### FINDING-1
-- **Severity**: Critical|Important|Minor
+- **Severity**: Critical|Important|Minor|Notable
 - **Confidence**: 0-100
 - **File**: relative/path/to/file.ext
 - **Lines**: start-end
@@ -667,7 +768,16 @@ IMPORTANT INSTRUCTIONS - READ BEFORE REVIEWING:
    - Error codes or status codes that differ from the spec
    - Behavioral differences on edge cases (last iteration, empty input, etc.)
 
-10. PROJECT REVIEW HINTS: [CONDITIONAL - only include this item when
+10. NOTABLE OBSERVATIONS: For design-level observations that are not bugs
+    but are worth revisiting (e.g., an interface that will need to evolve,
+    a pattern that works now but won't scale under future requirements,
+    a design tension between competing concerns), classify as Notable.
+    Notable findings are informational — they do NOT trigger fixes, do NOT
+    count toward the gate check, and do NOT enter the fix loop. They are
+    captured separately for future brainstorming. Use Notable when the
+    observation is valuable but not actionable within the current PR scope.
+
+11. PROJECT REVIEW HINTS: [CONDITIONAL - only include this item when
     `.specify/review-hints.md` exists and is non-empty]
 
     The following framework-specific patterns have been identified by the

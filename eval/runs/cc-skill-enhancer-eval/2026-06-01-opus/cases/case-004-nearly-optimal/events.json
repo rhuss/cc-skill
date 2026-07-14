@@ -1,0 +1,181 @@
+[
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-06-01T13:22:41.977Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-06-01T13:22:41.978Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-06-01T13:22:41.978Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-06-01T13:22:41.978Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-06-01T13:22:42.012Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-06-01T13:22:42.035Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-06-01T13:22:42.043Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-06-01T13:22:43.453Z"
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "timestamp": "2026-06-01T13:22:43.495Z",
+    "model": "claude-opus-4-6"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [],
+    "timestamp": "2026-06-01T13:22:47.162Z",
+    "_msg_id": "msg_vrtx_01ByCRQ2jLouTnt8srSZdhV3"
+  },
+  {
+    "type": "assistant",
+    "text": "I'll enhance the skill at `target-skill/SKILL.md`. Starting by reading the target file and the knowledge base.",
+    "tools": [],
+    "timestamp": "2026-06-01T13:22:48.123Z",
+    "_msg_id": "msg_vrtx_01ByCRQ2jLouTnt8srSZdhV3"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Read",
+        "id": "toolu_vrtx_01DxnT76yrAzWdjPJ9WWyqqs",
+        "input": {
+          "file_path": "/private/tmp/claude-501/agent-eval/2026-06-01-opus/cases/case-004-nearly-optimal/target-skill/SKILL.md"
+        }
+      }
+    ],
+    "timestamp": "2026-06-01T13:22:49.468Z",
+    "_msg_id": "msg_vrtx_01ByCRQ2jLouTnt8srSZdhV3"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01DxnT76yrAzWdjPJ9WWyqqs",
+    "tool_name": "Read",
+    "content": "1\t---\n2\tname: \"pr:review\"\n3\tdescription: \"Review a pull request for code quality, test coverage, and architectural alignment. Use when asked to review a PR, check code quality, provide feedback on changes, or audit a diff. Do NOT use for creating PRs (use pr:create) or for merging (use pr:merge).\"\n4\targument-hint: \"<pr-number> [--focus security|performance|correctness] [--brief]\"\n5\tallowed-tools: [\"Read\", \"Bash\", \"Glob\"]\n6\tuser-invocable: true\n7\t---\n8\t\n9\t# Pull Request Review\n10\t\n11\tPerform a structured code review on a GitHub pull request, covering correctness, test coverage, security, performance, and architectural fit.\n12\t\n13\t## Why This Skill Exists\n14\t\n15\tCode reviews catch bugs before they reach production, but review quality varies wildly. Junior reviewers miss security issues; senior reviewers skip test coverage. This skill applies a consistent checklist so nothing falls through the cracks, while leaving subjective design decisions to the human reviewer.\n16\t\n17\t## Procedure\n18\t\n19\t### Step 1: Fetch the Diff\n20\t\n21\t```bash\n22\tgh pr diff ${pr_number}\n23\t```\n24\t\n25\tRead the diff. If `--brief` is set, summarize the changes in 3-5 sentences and skip to Step 5.\n26\t\n27\t**Gotcha**: Large diffs (>2000 lines) should be reviewed file-by-file. If the diff exceeds this threshold, switch to per-file review mode automatically and note this in the output.\n28\t\n29\t### Step 2: Check for Common Issues\n30\t\n31\tReview each changed file for:\n32\t\n33\t**Correctness**:\n34\t- Off-by-one errors in loops and slices\n35\t- Nil/null pointer dereference risks\n36\t- Resource leaks (unclosed files, connections, channels)\n37\t- Race conditions in concurrent code\n38\t\n39\t**Security** (prioritize if `--focus security`):\n40\t- SQL injection via string concatenation\n41\t- Unsanitized user input in templates or commands\n42\t- Hardcoded secrets or credentials\n43\t- Missing authentication/authorization checks\n44\t\n45\t**Performance** (prioritize if `--focus performance`):\n46\t- N+1 query patterns\n47\t- Unbounded collection growth\n48\t- Missing pagination on list endpoints\n49\t- Expensive operations inside loops\n50\t\n51\t### Step 3: Verify Test Coverage\n52\t\n53\tCheck if the PR includes tests for:\n54\t- New public functions/methods\n55\t- Changed behavior (not just changed code)\n56\t- Error paths and edge cases\n57\t\n58\t```bash\n59\tgh pr checks ${pr_number}\n60\t```\n61\t\n62\tNote any failing CI checks.\n63\t\n64\t### Step 4: Assess Architectural Fit\n65\t\n66\tCompare the changes against:\n67\t- Existing patterns in the same package/module\n68\t- The project's documented architecture (if available in `docs/` or `ARCHITECTURE.md`)\n69\t- Separation of concerns (is business logic leaking into handlers?)\n70\t\n71\t### Step 5: Generate Review\n72\t\n73\tOutput a structured review:\n74\t\n75\t```markdown\n76\t## PR #${pr_number} Review\n77\t\n78\t### Summary\n79\t<2-3 sentence summary of what the PR does>\n80\t\n81\t### Findings\n82\t\n83\t| Severity | File | Line | Issue |\n84\t|----------|------|------|-------|\n85\t| ...      | ...  | ...  | ...   |\n86\t\n87\t### Test Coverage\n88\t<Assessment of test adequacy>\n89\t\n90\t### Recommendation\n91\t<APPROVE | REQUEST_CHANGES | COMMENT>\n92\t<Brief justification>\n93\t```\n94\t\n95\t**Why this format?** The table makes it easy to address findings one by one. The recommendation gives a clear signal. The summary helps other reviewers who arrive late.\n96\t\n97\t## Error Handling\n98\t\n99\t| Condition | Action |\n100\t|-----------|--------|\n101\t| PR number not found | Stop: \"PR #${pr_number} not found. Check the number and repo.\" |\n102\t| No diff available | Stop: \"PR has no changes or is already merged.\" |\n103\t| CI checks still running | Note in review: \"CI checks in progress, results may change.\" |\n104\t| Diff too large (>2000 lines) | Switch to per-file mode, note in output |\n105\t\n106\t## Known Limitations\n107\t\n108\t- Cannot assess runtime behavior or performance regressions (use profiling tools for that)\n109\t- Architecture assessment depends on documented patterns; undocumented conventions may be missed\n110\t- Security review is pattern-based, not a substitute for SAST tools like Semgrep or CodeQL\n111\t",
+    "is_error": false,
+    "timestamp": "2026-06-01T13:22:49.522Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Read",
+        "id": "toolu_vrtx_01Y5WPuhKbi5YDHvRZTT1bnk",
+        "input": {
+          "file_path": "/Users/rhuss/Development/context-engineering/cc-skill/skill/knowledge/skill-authoring-patterns.md"
+        }
+      }
+    ],
+    "timestamp": "2026-06-01T13:22:50.409Z",
+    "_msg_id": "msg_vrtx_01ByCRQ2jLouTnt8srSZdhV3"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01Y5WPuhKbi5YDHvRZTT1bnk",
+    "tool_name": "Read",
+    "content": "1\t# Skill-Authoring Patterns\n2\t\n3\t14 patterns for writing effective Claude Code SKILL.md files. Organized by category with detection signals, quality criteria, and improvement guidance for each.\n4\t\n5\t## Discovery\n6\t\n7\t### 1. Activation Metadata\n8\t\n9\t**Applicability**: Universal\n10\t\n11\t**What it is**: YAML frontmatter with `name`, `description`, and optional fields (`argument-hint`, `user-invocable`, `disable-model-invocation`) that controls when Claude selects this skill.\n12\t\n13\t**Detection signals**:\n14\t- YAML frontmatter block exists (`---` delimiters)\n15\t- `name` field present with namespaced format (`plugin:skill`)\n16\t- `description` field present with action-oriented text\n17\t- Description includes trigger phrases matching intended use cases\n18\t\n19\t**Quality criteria**:\n20\t- **Strong**: Description names specific trigger verbs and exclusion phrases. A reader can predict which requests activate it without reading the body. `argument-hint` present if the skill accepts input.\n21\t- **Present**: Frontmatter exists but description is vague or generic (\"Helps with X\").\n22\t\n23\t**Improvement guidance**: Rewrite the description so it reads like a routing rule. List the 3-5 most common user phrasings that should trigger this skill. Add `argument-hint` if the skill takes input.\n24\t\n25\t---\n26\t\n27\t### 2. Exclusion Clause\n28\t\n29\t**Applicability**: Universal\n30\t\n31\t**What it is**: A \"Do NOT use for\" or \"Skip when\" statement in the description or body that prevents false activation.\n32\t\n33\t**Detection signals**:\n34\t- Explicit negation phrases in description or early body (\"Do NOT use\", \"Skip when\", \"Not for\")\n35\t- Anti-patterns or non-trigger scenarios listed\n36\t- Clear boundary between this skill and adjacent ones\n37\t\n38\t**Quality criteria**:\n39\t- **Strong**: Names specific adjacent skills or scenarios that are commonly confused with this one. Exclusions are actionable (Claude can route away based on them).\n40\t- **Present**: Generic exclusion exists (\"not for general use\") without naming what to use instead.\n41\t\n42\t**Improvement guidance**: Identify the 2-3 most likely misroutes. Name the adjacent skill or behavior Claude should choose instead. Place exclusions in the description (not buried in the body) so routing checks see them.\n43\t\n44\t---\n45\t\n46\t## Context Economy\n47\t\n48\t### 3. Context Budget\n49\t\n50\t**Applicability**: Universal\n51\t\n52\t**What it is**: Awareness of token cost. The skill loads only what it needs and avoids pulling in large reference material unconditionally.\n53\t\n54\t**Detection signals**:\n55\t- Conditional loading (\"if X exists, read it\")\n56\t- Scoped reads (specific files, line ranges, sections) rather than \"read everything\"\n57\t- No unconditional loading of large knowledge files or entire directories\n58\t- File size awareness (line limits, pagination)\n59\t\n60\t**Quality criteria**:\n61\t- **Strong**: Every read or load is conditional or scoped. Knowledge files are loaded only when the skill's logic requires them. No \"load all files in directory\" patterns.\n62\t- **Present**: Some files are loaded conditionally, but others are loaded unconditionally regardless of need.\n63\t\n64\t**Improvement guidance**: Audit every Read/Glob/Grep instruction. Make large loads conditional on whether the skill's current path needs them. Prefer targeted reads (specific sections, line ranges) over full-file reads for large files.\n65\t\n66\t---\n67\t\n68\t### 4. Progressive Disclosure\n69\t\n70\t**Applicability**: Conditional (skills longer than ~200 lines or with distinct reference material)\n71\t\n72\t**Condition**: The skill has enough content that splitting into a main SKILL.md plus reference files improves readability and reduces token cost.\n73\t\n74\t**Detection signals**:\n75\t- SKILL.md stays under 500 lines\n76\t- Reference material split into separate files in the same directory\n77\t- SKILL.md references companion files with conditional loading\n78\t- Clear separation between core instructions and supplementary material\n79\t\n80\t**Quality criteria**:\n81\t- **Strong**: Core workflow fits in SKILL.md. Reference data, examples, and edge cases live in companion files loaded only when needed. Companion files have descriptive names.\n82\t- **Present**: SKILL.md is long but has some structure, or references exist but are loaded unconditionally.\n83\t\n84\t**Improvement guidance**: Move reference tables, example libraries, and edge-case catalogs into companion files. Keep the main SKILL.md focused on the decision-making workflow. Name companion files descriptively (e.g., `examples.md`, `reference.md`, `gotchas.md`).\n85\t\n86\t---\n87\t\n88\t## Instruction Calibration\n89\t\n90\t### 5. Control Tuning\n91\t\n92\t**Applicability**: Universal\n93\t\n94\t**What it is**: The right level of specificity in instructions. Rigid steps where precision matters, flexible guidance where judgment matters.\n95\t\n96\t**Detection signals**:\n97\t- Mix of exact commands/formats (rigid) and open-ended guidance (flexible)\n98\t- Rigid sections for output formats, validation steps, error handling\n99\t- Flexible sections for analysis, creative decisions, user interaction\n100\t- No over-specification of judgment calls or under-specification of exact outputs\n101\t- No weak control-flow declarations: steps or headings labeled \"Optional\", \"if desired\", \"consider\", or \"you may\" when the step contains conditional logic that already handles the skip case (making the \"Optional\" label redundant and permission-granting)\n102\t\n103\t**Quality criteria**:\n104\t- **Strong**: A reader can tell which parts are \"follow exactly\" vs. \"use your judgment.\" Output formats are specified precisely. Analysis and reasoning steps allow adaptation. Workflow steps that have their own branching logic (e.g., \"if available, do X; if not, skip\") are not additionally labeled \"Optional\" in headings or introductory text, because the branch already encodes the skip condition. No step uses soft language (\"may\", \"consider\", \"optionally\") on actions that must happen when their condition is met.\n105\t- **Present**: Instructions exist but everything is the same level of specificity (either all rigid or all vague). Or: steps have correct branching logic but headings or framing undermine it with soft labels that invite skipping the branch check entirely.\n106\t\n107\t**Improvement guidance**: Mark output-format sections as rigid (exact templates, required fields). Mark analysis and decision sections as flexible (criteria to consider, not exact steps to follow). Use imperative verbs for rigid steps, descriptive language for flexible ones. Audit step headings and introductory sentences for weak control-flow declarations: if a step says \"(Optional)\" but contains \"if X, do Y; if not, skip,\" remove the \"Optional\" label. The branching logic is the control flow; the label undermines it by giving the LLM permission to skip the branch check itself.\n108\t\n109\t---\n110\t\n111\t### 6. Explain-the-Why\n112\t\n113\t**Applicability**: Universal\n114\t\n115\t**What it is**: Reasoning behind non-obvious instructions so Claude can make good judgment calls in edge cases.\n116\t\n117\t**Detection signals**:\n118\t- \"Because\", \"so that\", \"this ensures\", \"the reason\" phrases near instructions\n119\t- Context for constraints (\"500 lines because context budget\")\n120\t- Rationale for ordering choices, format decisions, or workflow steps\n121\t\n122\t**Quality criteria**:\n123\t- **Strong**: Every non-obvious constraint includes its reason. A reader could infer the right action in an unlisted edge case by understanding the intent.\n124\t- **Present**: Some reasons given, but many instructions are bare imperatives without context.\n125\t\n126\t**Improvement guidance**: For each instruction, ask \"would Claude know why if this failed?\" If not, add a brief reason. Focus on constraints, ordering requirements, and format choices. One sentence is enough.\n127\t\n128\t---\n129\t\n130\t### 7. Template Scaffold\n131\t\n132\t**Applicability**: Conditional (skills that produce structured output)\n133\t\n134\t**Condition**: The skill generates output with a consistent structure (reports, checklists, code, formatted responses).\n135\t\n136\t**Detection signals**:\n137\t- Output templates with placeholders\n138\t- Markdown/code blocks showing expected output structure\n139\t- Field descriptions for template variables\n140\t- Example outputs matching the template\n141\t\n142\t**Quality criteria**:\n143\t- **Strong**: Complete output template with all fields defined. Placeholders use descriptive names. At least one filled example demonstrates the template in use.\n144\t- **Present**: Partial template or output described in prose without a concrete example.\n145\t\n146\t**Improvement guidance**: Write the full output template with placeholder names that describe expected content. Add one filled example. If the output varies by scenario, show the most common variant as the template and describe variations separately.\n147\t\n148\t---\n149\t\n150\t### 8. In-Skill Examples\n151\t\n152\t**Applicability**: Conditional (skills with non-obvious input/output mapping)\n153\t\n154\t**Condition**: The relationship between input and expected output is not immediately obvious from the instructions alone.\n155\t\n156\t**Detection signals**:\n157\t- Input/output pairs showing expected behavior\n158\t- \"Example:\" or \"For instance:\" blocks with concrete scenarios\n159\t- Before/after comparisons\n160\t- Sample invocations with expected results\n161\t\n162\t**Quality criteria**:\n163\t- **Strong**: Examples cover the common case and at least one edge case. Each example shows both input and expected output. Examples are realistic, not contrived.\n164\t- **Present**: Examples exist but only cover the happy path, or show input without expected output.\n165\t\n166\t**Improvement guidance**: Add 2-3 examples covering: the most common use case, an edge case, and (if applicable) a case where the skill should decline or redirect. Show full input/output pairs.\n167\t\n168\t---\n169\t\n170\t### 9. Known Gotchas\n171\t\n172\t**Applicability**: Conditional (skills operating in domains with common pitfalls)\n173\t\n174\t**Condition**: The skill works in an area where practitioners commonly make mistakes or where counterintuitive behavior exists.\n175\t\n176\t**Detection signals**:\n177\t- \"Warning:\", \"Note:\", \"Common mistake:\" sections\n178\t- Explicit pitfall descriptions with mitigations\n179\t- \"Do not confuse X with Y\" statements\n180\t- Edge cases called out with handling instructions\n181\t\n182\t**Quality criteria**:\n183\t- **Strong**: Gotchas are specific to this skill's domain, not generic advice. Each gotcha includes what goes wrong and how to avoid it. Gotchas are placed near the relevant instruction.\n184\t- **Present**: Generic warnings exist but lack specificity, or gotchas are collected at the end rather than inline.\n185\t\n186\t**Improvement guidance**: Interview the domain for its top 3 mistakes. Write each as: \"When X happens, you might think Y, but Z.\" Place each gotcha near the instruction where it matters, not in a separate section.\n187\t\n188\t---\n189\t\n190\t## Workflow Control\n191\t\n192\t### 10. Execution Checklist\n193\t\n194\t**Applicability**: Conditional (skills with multi-step procedures)\n195\t\n196\t**Condition**: The skill has a procedure with 3+ steps that must execute in a specific order.\n197\t\n198\t**Detection signals**:\n199\t- Numbered step sequences\n200\t- Checkpoint markers between phases\n201\t- \"Before proceeding, verify...\" statements\n202\t- Clear phase/step identification\n203\t\n204\t**Quality criteria**:\n205\t- **Strong**: Steps are numbered and ordered. Each step has a clear completion criterion. Dependencies between steps are explicit. The skill can recover or halt gracefully at any checkpoint.\n206\t- **Present**: Steps exist but ordering is implicit, or completion criteria are missing.\n207\t\n208\t**Improvement guidance**: Number every step. Add a completion check after each non-trivial step. Make dependencies explicit (\"Step 3 requires output from Step 2\"). Add halt conditions where failure should stop the workflow.\n209\t\n210\t---\n211\t\n212\t### 11. Self-Correcting Loop\n213\t\n214\t**Applicability**: Conditional (skills that produce artifacts requiring validation)\n215\t\n216\t**Condition**: The skill creates output (code, files, configurations) that can be validated programmatically.\n217\t\n218\t**Detection signals**:\n219\t- \"Run tests/checks after...\" instructions\n220\t- Retry or fix loops (\"if validation fails, adjust and retry\")\n221\t- Validation commands with expected outcomes\n222\t- Maximum retry counts or bail-out conditions\n223\t\n224\t**Quality criteria**:\n225\t- **Strong**: Validation step is mandatory (not optional). Fix loop has a maximum iteration count. Bail-out produces a clear error, not silent failure. Both success and failure paths are defined.\n226\t- **Present**: Validation mentioned but optional, or no retry limit defined.\n227\t\n228\t**Improvement guidance**: Make validation mandatory after artifact creation. Define the validation command and expected outcome. Add a retry loop with a maximum count (typically 2-3). Define what happens when retries are exhausted.\n229\t\n230\t---\n231\t\n232\t### 12. Plan-Validate-Execute\n233\t\n234\t**Applicability**: Conditional (skills that make changes to user files or external systems)\n235\t\n236\t**Condition**: The skill modifies files, creates resources, or takes actions that are hard to reverse.\n237\t\n238\t**Detection signals**:\n239\t- \"First, propose...\" or \"Present plan for approval...\" phases\n240\t- User confirmation gates before execution\n241\t- Dry-run or preview modes\n242\t- Separation between analysis/planning and execution\n243\t\n244\t**Quality criteria**:\n245\t- **Strong**: Clear separation between planning and execution phases. User must explicitly approve before changes happen. Preview shows exactly what will change. Rollback or undo is addressed.\n246\t- **Present**: Some separation exists but user approval is implicit or skippable.\n247\t\n248\t**Improvement guidance**: Split the workflow into: (1) analyze and propose changes, (2) present proposal with specifics, (3) wait for user approval, (4) execute. Never combine analysis and execution in a single step for destructive operations.\n249\t\n250\t---\n251\t\n252\t## Executable Code\n253\t\n254\t### 13. Utility Bundle\n255\t\n256\t**Applicability**: Conditional (skills that need helper scripts or programmatic logic)\n257\t\n258\t**Condition**: The skill requires computation, file processing, or operations better handled by code than LLM reasoning.\n259\t\n260\t**Detection signals**:\n261\t- `scripts/` directory with helper scripts\n262\t- Bash/Python code blocks with execution instructions\n263\t- `${CLAUDE_PLUGIN_ROOT}` references for script paths\n264\t- Tool integration (Bash, LSP, etc.) for programmatic operations\n265\t\n266\t**Quality criteria**:\n267\t- **Strong**: Scripts handle the deterministic work (parsing, validation, data transformation). LLM handles the judgment work (analysis, recommendations, writing). Scripts are referenced by path and called with clear arguments. Error handling covers missing scripts.\n268\t- **Present**: Some code exists but it's inline in the SKILL.md rather than in scripts, or scripts exist but error handling is missing.\n269\t\n270\t**Improvement guidance**: Move deterministic logic (parsing, validation, formatting) into scripts in a `scripts/` directory. Keep judgment and analysis in the SKILL.md instructions. Reference scripts using `${CLAUDE_PLUGIN_ROOT}/scripts/` paths. Add error handling for missing or failing scripts.\n271\t\n272\t---\n273\t\n274\t## Meta\n275\t\n276\t### 14. Autonomy Calibration\n277\t\n278\t**Applicability**: Universal\n279\t\n280\t**What it is**: Frontmatter and body instructions that tune how much independence Claude has when running this skill.\n281\t\n282\t**Detection signals**:\n283\t- `user-invocable` field in frontmatter\n284\t- `disable-model-invocation` field in frontmatter\n285\t- `allowed-tools` restrictions in frontmatter\n286\t- Explicit permission gates (\"ask user before...\", \"do not proceed without approval\")\n287\t- Tool restrictions or allowlists\n288\t\n289\t**Quality criteria**:\n290\t- **Strong**: Autonomy level matches the skill's risk profile. Destructive skills require explicit approval. Read-only analysis skills allow autonomous execution. Tool restrictions are specific (not blanket allow/deny).\n291\t- **Present**: Some autonomy controls exist but don't match the risk profile (e.g., a read-only skill requires unnecessary approval, or a destructive skill lacks gates).\n292\t\n293\t**Improvement guidance**: Assess the skill's risk: does it modify files, call external APIs, or take irreversible actions? High-risk skills need `user-invocable: true`, explicit approval gates, and possibly `allowed-tools` restrictions. Low-risk skills can allow model invocation and autonomous execution.\n294\t",
+    "is_error": false,
+    "timestamp": "2026-06-01T13:22:50.458Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [],
+    "timestamp": "2026-06-01T13:25:28.512Z",
+    "_msg_id": "msg_vrtx_017ydCokZjy8FyAvsV1JoWzG"
+  },
+  {
+    "type": "assistant",
+    "text": "Both files loaded. Now evaluating the skill against all 14 patterns.\n\n### Steps Executed\n- Step 1: Input Handling \u2014 completed\n- Step 2: Load Knowledge \u2014 completed\n- Step 3: Baseline Evaluation \u2014 completed\n- Step 4: Already-Optimal Detection \u2014 not optimal, continued\n- Step 5: Enhancement Targeting \u2014 completed, 5 targets selected\n- Step 6: Rewrite \u2014 completed\n- Step 7: File Splitting \u2014 skipped (under 500 lines)\n- Step 8: Prompt Plugin Delegation \u2014 skipped (plugin not available)\n- Step 9: Changelog \u2014 in progress\n\n## Enhanced Skill\n\n```markdown\n---\nname: \"pr:review\"\ndescription: \"Review a pull request for code quality, test coverage, and architectural alignment. Use when asked to review a PR, check code quality, provide feedback on changes, or audit a diff. Do NOT use for creating PRs (use pr:create) or for merging (use pr:merge).\"\nargument-hint: \"<pr-number> [--focus security|performance|correctness] [--brief]\"\nallowed-tools: [\"Read\", \"Bash\", \"Glob\"]\nuser-invocable: true\n---\n\n# Pull Request Review\n\nPerform a structured code review on a GitHub pull request, covering correctness, test coverage, security, performance, and architectural fit.\n\n## Why This Skill Exists\n\nCode reviews catch bugs before they reach production, but review quality varies wildly. Junior reviewers miss security issues; senior reviewers skip test coverage. This skill applies a consistent checklist so nothing falls through the cracks, while leaving subjective design decisions to the human reviewer.\n\n## Procedure\n\n### Step 1: Fetch the Diff\n\n```bash\ngh pr diff ${pr_number}\n```\n\nRead the diff. If `--brief` is set, summarize the changes in 3-5 sentences and skip to Step 5.\n\n**Gotcha**: Large diffs (>2000 lines) should be reviewed file-by-file rather than as a monolithic diff, because reviewers lose track of cross-file state beyond that size. If the diff exceeds this threshold, switch to per-file review mode automatically and note this in the output.\n\n**Completion check**: You have the full diff loaded (or have switched to per-file mode for large diffs). If the PR number is not found or the diff is empty, stop with the corresponding error from the Error Handling table.\n\n### Step 2: Check for Common Issues\n\nReview each changed file for the categories below. Start with correctness, because logic errors cause the most user-facing damage. Then check security and performance, prioritizing whichever matches `--focus`.\n\n**Gotcha**: Do not review generated files (lockfiles, compiled output, vendored dependencies). These inflate finding counts without actionable value. If a file looks generated, skip it and note the skip.\n\n**Correctness**:\n- Off-by-one errors in loops and slices\n- Nil/null pointer dereference risks\n- Resource leaks (unclosed files, connections, channels)\n- Race conditions in concurrent code\n\n**Security** (prioritize if `--focus security`):\n- SQL injection via string concatenation\n- Unsanitized user input in templates or commands\n- Hardcoded secrets or credentials\n- Missing authentication/authorization checks\n\n**Performance** (prioritize if `--focus performance`):\n- N+1 query patterns\n- Unbounded collection growth\n- Missing pagination on list endpoints\n- Expensive operations inside loops\n\nUse these severity levels when recording findings:\n\n| Severity | Criteria |\n|----------|----------|\n| critical | Causes data loss, security vulnerability, or crash in production |\n| warning | Incorrect behavior or degraded performance that affects users |\n| info | Style, naming, or minor improvements that do not affect correctness |\n\n**Gotcha**: Resist reporting style issues as warnings. A missing blank line is not a warning; an unhandled error path is. Inflated severities erode reviewer trust.\n\n**Completion check**: Every changed file (except generated files) has been reviewed against all applicable categories.\n\n### Step 3: Verify Test Coverage\n\nThis step requires output from Step 2 (you need to know what changed to assess whether tests cover it).\n\nCheck if the PR includes tests for:\n- New public functions/methods\n- Changed behavior (not just changed code)\n- Error paths and edge cases\n\n```bash\ngh pr checks ${pr_number}\n```\n\nNote any failing CI checks. Test coverage matters separately from correctness because even correct code breaks later without regression tests.\n\n**Completion check**: You have assessed test adequacy for every behavioral change found in Step 2, and CI check status is recorded.\n\n### Step 4: Assess Architectural Fit\n\nThis step requires output from Step 2 (the changed files determine which patterns to compare against).\n\nCompare the changes against:\n- Existing patterns in the same package/module (read 2-3 neighboring files for comparison, not the entire directory)\n- The project's documented architecture (if available in `docs/` or `ARCHITECTURE.md`)\n- Separation of concerns (is business logic leaking into handlers?)\n\n**Completion check**: Architectural findings, if any, are recorded with file references.\n\n### Step 5: Generate Review\n\nOutput a structured review using this template:\n\n```markdown\n## PR #${pr_number} Review\n\n### Summary\n<2-3 sentence summary of what the PR does>\n\n### Findings\n\n| Severity | File | Line | Issue |\n|----------|------|------|-------|\n| ...      | ...  | ...  | ...   |\n\n### Test Coverage\n<Assessment of test adequacy>\n\n### Recommendation\n<APPROVE | REQUEST_CHANGES | COMMENT>\n<Brief justification>\n```\n\n**Filled example**:\n\n```markdown\n## PR #142 Review\n\n### Summary\nAdds rate limiting to the `/api/tokens` endpoint using a sliding window counter backed by Redis. Also refactors the middleware chain to support per-route configuration.\n\n### Findings\n\n| Severity | File | Line | Issue |\n|----------|------|------|-------|\n| critical | api/tokens.go | 87 | Redis connection is not checked for nil before use; will panic if Redis is unavailable |\n| warning | middleware/rate.go | 34 | Window size is hardcoded to 60s; should read from config to match other rate limiters |\n| info | api/tokens_test.go | 12 | Test name `TestIt` is not descriptive; consider `TestRateLimitRejectsExcessRequests` |\n\n### Test Coverage\nHappy path is covered. Missing: test for Redis connection failure, test for window boundary behavior.\n\n### Recommendation\nREQUEST_CHANGES\nThe nil Redis connection panic (critical) must be fixed before merge. The hardcoded window size is a secondary concern.\n```\n\nWhen no findings are detected, leave the Findings table empty and recommend APPROVE. When `--brief` is set, the output is just the Summary section (2-3 sentences) without the full review structure.\n\nThe table format makes it easy to address findings one by one. The recommendation gives a clear signal. The summary helps other reviewers who arrive late.\n\n## Error Handling\n\n| Condition | Action |\n|-----------|--------|\n| PR number not found | Stop: \"PR #${pr_number} not found. Check the number and repo.\" |\n| No diff available | Stop: \"PR has no changes or is already merged.\" |\n| CI checks still running | Note in review: \"CI checks in progress, results may change.\" |\n| Diff too large (>2000 lines) | Switch to per-file mode, note in output |\n\n## Known Limitations\n\n- Cannot assess runtime behavior or performance regressions (use profiling tools for that)\n- Architecture assessment depends on documented patterns; undocumented conventions may be missed\n- Security review is pattern-based, not a substitute for SAST tools like Semgrep or CodeQL\n```\n\n---\n\n## What Changed\n\n| Pattern Applied | What was added/changed | Why |\n|----------------|----------------------|-----|\n| Explain-the-Why | Added reasoning for the 2000-line threshold (\"reviewers lose track of cross-file state\"), why correctness is checked first (\"logic errors cause the most user-facing damage\"), why test coverage is a separate step (\"even correct code breaks later without regression tests\") | Several instructions were bare imperatives without rationale, making edge-case judgment harder |\n| Template Scaffold | Added a filled example of the review template showing a realistic PR #142 with critical/warning/info findings and a REQUEST_CHANGES recommendation | The output template had placeholders but no demonstration of what a completed review looks like, leaving severity classification ambiguous |\n| In-Skill Examples | Added a severity criteria table (critical/warning/info with definitions), the filled review example, and edge-case notes for no-findings and `--brief` outputs | Severity assignment was undefined, so the skill relied on Claude's default judgment rather than calibrated criteria |\n| Known Gotchas | Added two inline gotchas: skip generated files in Step 2, and resist inflating severity levels in Step 2. Enhanced the existing large-diff gotcha with reasoning | Code review has well-known pitfalls beyond large diffs; reviewing vendored code and over-reporting style issues as warnings are common mistakes |\n| Execution Checklist | Added completion checks after Steps 1-4, and explicit dependency declarations for Steps 3 and 4 (\"requires output from Step 2\") | Steps lacked completion criteria and dependencies were implicit, making it possible to skip or misordered steps |\n\n## Status Change\n\n| Pattern | Before | After |\n|---------|--------|-------|\n| Explain-the-Why | present | strong |\n| Template Scaffold | present | strong |\n| In-Skill Examples | present | strong |\n| Known Gotchas | present | strong |\n| Execution Checklist | present | strong |\n\n**Summary**: 5 patterns improved, 0 new files proposed\n\n---",
+    "tools": [],
+    "timestamp": "2026-06-01T13:25:53.191Z",
+    "_msg_id": "msg_vrtx_017ydCokZjy8FyAvsV1JoWzG"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "AskUserQuestion",
+        "id": "toolu_vrtx_01R6Lte1yRbHgDmDUMFq8c4q",
+        "input": {
+          "questions": [
+            {
+              "question": "Apply the enhanced skill to target-skill/SKILL.md, or skip and keep the original?",
+              "header": "Apply?",
+              "options": [
+                {
+                  "label": "Apply",
+                  "description": "Write the enhanced skill to target-skill/SKILL.md, replacing the current content"
+                },
+                {
+                  "label": "Skip",
+                  "description": "Keep the original skill unchanged"
+                }
+              ],
+              "multiSelect": false
+            }
+          ]
+        }
+      }
+    ],
+    "timestamp": "2026-06-01T13:25:55.060Z",
+    "_msg_id": "msg_vrtx_017ydCokZjy8FyAvsV1JoWzG"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01R6Lte1yRbHgDmDUMFq8c4q",
+    "tool_name": "AskUserQuestion",
+    "content": "Answer questions?",
+    "is_error": true,
+    "timestamp": "2026-06-01T13:25:55.103Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [],
+    "timestamp": "2026-06-01T13:25:58.217Z",
+    "_msg_id": "msg_vrtx_01GpPhDLQHbCpk9UieRUeyBM"
+  },
+  {
+    "type": "assistant",
+    "text": "Apply the enhanced version to `target-skill/SKILL.md`, or skip to keep the original unchanged?",
+    "tools": [],
+    "timestamp": "2026-06-01T13:25:58.302Z",
+    "_msg_id": "msg_vrtx_01GpPhDLQHbCpk9UieRUeyBM"
+  },
+  {
+    "type": "result",
+    "cost_usd": 0.51034425,
+    "num_turns": 4,
+    "timestamp": null
+  }
+]

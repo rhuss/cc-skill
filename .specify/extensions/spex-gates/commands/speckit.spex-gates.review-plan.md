@@ -7,7 +7,7 @@ description: "Post-planning quality validation with coverage matrix, red flag sc
 ## Ship Pipeline Guard
 
 If `.specify/.spex-state` exists and its `status` is `running`, this command is part of an autonomous pipeline. Check the `ask` field:
-- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT use AskUserQuestion), complete the review autonomously, and return immediately so the pipeline can advance.
+- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT prompt the user interactively), complete the review autonomously, and return immediately so the pipeline can advance.
 - If `ask` is `"always"`: prompt the user as normal.
 
 ```bash
@@ -64,11 +64,14 @@ After tasks.md exists, verify every task meets these criteria:
 - **Testable**: Can verify completion objectively
 - **Atomic**: One clear outcome per task
 - **Ordered**: Dependencies between tasks are respected, phases are sequenced correctly
+- **Right-sized**: Setup, configuration, scaffolding, and documentation steps are folded into the task whose deliverable needs them. Split only where a reviewer could meaningfully reject one task while approving its neighbor. Each task ends with an independently testable deliverable.
 
 Also check:
 - Every task specifies concrete file paths (not "somewhere" or "TBD")
 - Phase ordering is logical (setup before core, tests before integration)
 - No tasks duplicate work already covered by other tasks
+- Tasks that consume outputs from earlier tasks declare explicit **Interfaces** (function names, parameter types, return types). A task's implementer sees only their own task; the Interfaces block is how they learn the names and types neighboring tasks use.
+- If the spec has project-wide requirements (version floors, dependency limits, naming rules, platform requirements), the plan includes a **Global Constraints** section with those values copied verbatim from the spec. Every task implicitly inherits this section.
 
 Verify the plan includes a file structure mapping:
 - Files to be created or modified are listed with their responsibilities
@@ -161,17 +164,16 @@ Findings:
 
 Then ask the user how to proceed (skip in autonomous mode, default to "Fix all"):
 
-Use AskUserQuestion with:
+present the choice using `AskUserQuestion`:
 - header: "Findings"
-- multiSelect: false
-- Options:
+- Options (single-select):
   - "Fix all": "Address every finding automatically"
   - "Let me pick": "Select specific findings to fix (you can add comments)"
   - "Skip": "Proceed without changes"
 
 **If "Fix all"**: Apply fixes to plan.md and/or tasks.md for each finding, then re-run the relevant checks to confirm resolution.
 
-**If "Let me pick"**: Use AskUserQuestion with multiSelect: true, listing up to 4 findings as options (if more than 4, batch them across multiple rounds). Each option's label is the short finding (e.g., "#1 Task T003 not actionable") and the description is the detail. The user can select which to fix and use "Other" to add comments or instructions for specific findings.
+**If "Let me pick"**: Present a multi-select prompt, listing up to 4 findings as options (if more than 4, batch them across multiple rounds). Each option's label is the short finding (e.g., "#1 Task T003 not actionable") and the description is the detail. The user can select which to fix and use "Other" to add comments or instructions for specific findings.
 
 After the user selects findings, apply fixes to plan.md and/or tasks.md. For each selected finding:
 1. Read the user's comment (if any) to understand their intent
@@ -207,10 +209,34 @@ This is informational, not blocking. Do not prompt or gate on it.
 **MANDATORY: Update flow state.** This MUST run on every exit path, including early returns (e.g., "already passed", "no findings"). Use the flow state script:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-plan
+FLOW_STATE=".specify/extensions/spex-gates/scripts/spex-flow-state.sh" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-plan
 ```
 
 This updates the status line to show `P ✓`.
+
+## 10. Auto-Commit (if enabled)
+
+Check the git extension's auto-commit config. Only commit if the user has enabled auto-commit for this stage:
+
+```bash
+GIT_CONFIG=".specify/extensions/git/git-config.yml"
+AUTO_COMMIT=$(yq -r '.auto_commit.after_tasks.enabled // .auto_commit.default // false' "$GIT_CONFIG" 2>/dev/null)
+AUTO_COMMIT=${AUTO_COMMIT:-false}
+```
+
+If `AUTO_COMMIT` is `true` and there are uncommitted changes:
+
+```bash
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard specs/ .specify/ 2>/dev/null)" ]; then
+  git add -u
+  git add specs/ .specify/ 2>/dev/null || true
+  git commit -m "review-plan: gate passed, artifacts updated
+
+Assisted-By: 🤖 Claude Code"
+fi
+```
+
+Do NOT suggest manual commit commands or next steps. The workflow continues automatically (either via the ship pipeline or the user's next command).
 
 ## Integration
 

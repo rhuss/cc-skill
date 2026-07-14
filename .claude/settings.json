@@ -1,16 +1,17 @@
 {
   "permissions": {
-    "defaultMode": "auto",
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(*)",
-      "Read(*)",
-      "Edit(*)",
-      "Write(*)",
-      "Skill",
-      "mcp__*__*",
-      "Bash(specify *)",
       "Bash(*spex-init.sh*)",
-      "Bash(*spex-ship-statusline.sh*)"
+      "Bash(*spex-ship-statusline.sh*)",
+      "Bash(specify *)",
+      "Edit(*)",
+      "Read(*)",
+      "Skill",
+      "WebFetch",
+      "WebSearch",
+      "Write(*)"
     ]
   }
 }

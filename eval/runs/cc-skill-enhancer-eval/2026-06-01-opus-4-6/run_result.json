@@ -1,0 +1,159 @@
+{
+  "exit_code": 0,
+  "duration_s": 845.3,
+  "wall_clock_s": 845.2,
+  "cost_usd": 4.12,
+  "token_usage": {
+    "input": 113,
+    "output": 39975,
+    "cache_read": 3602526,
+    "cache_create": 211739
+  },
+  "num_turns": 69,
+  "per_model_usage": {
+    "claude-opus-4-6": {
+      "input": 113,
+      "output": 39975,
+      "cache_read": 3602526,
+      "cache_create": 211739,
+      "cost_usd": 4.12457175
+    }
+  },
+  "per_model_turns": {
+    "claude-opus-4-6": 69
+  },
+  "num_cases": 5,
+  "model": "claude-opus-4-6",
+  "agent": "claude-code",
+  "agent_version": "2.1.159 (Claude Code)",
+  "execution_mode": "case",
+  "eval_params": {
+    "skill": "skill:enhance",
+    "skill_args": "{skill_path}",
+    "execution_mode": "case",
+    "max_budget_usd": 100.0,
+    "timeout_s": 3600
+  },
+  "per_case": {
+    "case-001-many-absent-patterns": {
+      "exit_code": 0,
+      "duration_s": 28.6,
+      "token_usage": {
+        "input": 7,
+        "output": 1111,
+        "cache_read": 197612,
+        "cache_create": 51626
+      },
+      "cost_usd": 0.44927849999999997,
+      "num_turns": 5,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 7,
+          "output": 1111,
+          "cache_read": 197612,
+          "cache_create": 51626,
+          "cost_usd": 0.44927849999999997
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 5
+      }
+    },
+    "case-002-present-to-strong": {
+      "exit_code": 0,
+      "duration_s": 475.1,
+      "token_usage": {
+        "input": 23,
+        "output": 22618,
+        "cache_read": 1153321,
+        "cache_create": 57389
+      },
+      "cost_usd": 1.5009067500000002,
+      "num_turns": 21,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 23,
+          "output": 22618,
+          "cache_read": 1153321,
+          "cache_create": 57389,
+          "cost_usd": 1.5009067500000002
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 21
+      }
+    },
+    "case-003-short-proportionate": {
+      "exit_code": 0,
+      "duration_s": 89.1,
+      "token_usage": {
+        "input": 17,
+        "output": 3883,
+        "cache_read": 767431,
+        "cache_create": 33568
+      },
+      "cost_usd": 0.6906755000000001,
+      "num_turns": 15,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 17,
+          "output": 3883,
+          "cache_read": 767431,
+          "cache_create": 33568,
+          "cost_usd": 0.6906755000000001
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 15
+      }
+    },
+    "case-004-nearly-optimal": {
+      "exit_code": 0,
+      "duration_s": 232.1,
+      "token_usage": {
+        "input": 59,
+        "output": 11674,
+        "cache_read": 1260061,
+        "cache_create": 44556
+      },
+      "cost_usd": 1.2006504999999998,
+      "num_turns": 23,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 59,
+          "output": 11674,
+          "cache_read": 1260061,
+          "cache_create": 44556,
+          "cost_usd": 1.2006504999999998
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 23
+      }
+    },
+    "case-005-medium-with-scripts": {
+      "exit_code": 0,
+      "duration_s": 20.4,
+      "token_usage": {
+        "input": 7,
+        "output": 689,
+        "cache_read": 224101,
+        "cache_create": 24600
+      },
+      "cost_usd": 0.2830605,
+      "num_turns": 5,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 7,
+          "output": 689,
+          "cache_read": 224101,
+          "cache_create": 24600,
+          "cost_usd": 0.2830605
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 5
+      }
+    }
+  }
+}

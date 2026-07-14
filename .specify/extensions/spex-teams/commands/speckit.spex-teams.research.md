@@ -1,18 +1,18 @@
 ---
-description: "Parallel codebase research for planning via Claude Code Agent Teams"
+description: "Parallel codebase research for planning via parallel agent teams"
 ---
 
 # Teams Research: Parallel Codebase Exploration for Planning
 
 ## Overview
 
-This command orchestrates parallel codebase research using Claude Code Agent Teams during the plan phase. The lead session analyzes the spec to identify research topics, spawns research agents to explore different parts of the codebase simultaneously, collects their findings, and then generates the plan with comprehensive codebase knowledge.
+This command orchestrates parallel codebase research using parallel agent teams during the plan phase. The lead session analyzes the spec to identify research topics, spawns research agents to explore different parts of the codebase simultaneously, collects their findings, and then generates the plan with comprehensive codebase knowledge.
 
 ## Prerequisites
 
-### CC Teams Feature Flag
+### Parallel Agent Teams Prerequisite
 
-Check if Agent Teams is enabled:
+Enable Claude Code Agent Teams by setting the feature flag:
 
 ```bash
 # Check settings.local.json for the feature flag
@@ -26,9 +26,13 @@ FLAG=$(jq -r '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // ""' .claude/settings.
    jq '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' .claude/settings.local.json > /tmp/settings.json && mv /tmp/settings.json .claude/settings.local.json
    ```
 2. Inform the user: "Agent Teams feature flag has been enabled. Please restart Claude Code for teams to activate."
-3. **Fall back to single-session research** for this session (teams will work on next run).
+3. **Fall back to sequential execution** for this session (teams will work on next run).
 
-**If the flag is set:** Proceed with team research.
+**If the flag is set:** Proceed with team orchestration.
+
+**If the flag becomes unset mid-session** (e.g., user restarts without it): The pre-flight check runs at skill invocation time, not continuously. If the env var disappears mid-session, already-spawned teammates continue working. On next invocation, the check will catch the missing flag and fall back to sequential.
+
+**If teams are available:** Proceed with team research.
 
 ## Phase 1: Research Topic Identification
 
@@ -141,6 +145,14 @@ Then proceed with normal plan-phase flow (review-spec if spex-gates extension is
 When teams cannot be used (feature flag not active, single research topic, simple spec):
 
 Research the codebase directly in the current session, then generate the plan. This is the normal behavior when the teams extension is not active.
+
+## Multi-Agent Dispatch
+
+The parallel dispatch mechanism varies by harness:
+
+Use the **Agent** tool with `team_name` to spawn research agents. Each agent explores in its own context.
+
+If the current harness does not support parallel dispatch, research all topics sequentially.
 
 ## Key Principles
 

@@ -8,6 +8,8 @@ Help turn rough ideas into clear, agreed-upon feature descriptions through natur
 
 **Key Principle:** Brainstorming explores WHAT to build and WHY. The formal spec (via `/speckit-specify`) and implementation planning come after.
 
+**Idea Inbox:** On startup, check `brainstorm/idea-inbox.md` for accumulated review ideas and offer them as brainstorm seeds (see step 3). After creating a brainstorm document from inbox items, remove consumed entries (see step 8). When invoked after a review discussion that contained deferred-idea signals ("out of scope", "worth considering later", "design tension", "follow-up", "for a future PR"), also mention that ideas can be added to the inbox manually.
+
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, create spec files, or take any implementation action during brainstorming. Brainstorming ends with a decision and a brainstorm document, not a spec.
 </HARD-GATE>
@@ -27,13 +29,14 @@ You MUST create a task for each of these items and complete them in order:
 
 1. **Initialize spec-kit** - ensure specify CLI and project are set up
 2. **Explore project context** - check files, specs, constitution, recent commits
-3. **Check for related brainstorms** - scan `brainstorm/` for existing docs on similar topics, offer to update or create new
-4. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
-5. **Propose 2-3 approaches** - with trade-offs and your recommendation
-6. **Reach agreement** - confirm the chosen approach and scope with the user
-7. **Write brainstorm document** - persist session summary to `brainstorm/NN-topic-slug.md`, optionally create GitHub/GitLab issue
-8. **Update overview** - create or refresh `brainstorm/00-overview.md` with index, open threads, parked ideas
-9. **Transition** - offer next steps
+3. **Check idea inbox** - check `brainstorm/idea-inbox.md` for accumulated ideas from reviews, offer as brainstorm seeds
+4. **Check for related brainstorms** - scan `brainstorm/` for existing docs on similar topics, offer to update or create new
+5. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
+6. **Propose 2-3 approaches** - with trade-offs and your recommendation
+7. **Reach agreement** - confirm the chosen approach and scope with the user
+8. **Write brainstorm document** - persist session summary to `brainstorm/NN-topic-slug.md`, optionally create GitHub/GitLab issue. If seeded from inbox items, remove consumed entries from `brainstorm/idea-inbox.md`
+9. **Update overview** - create or refresh `brainstorm/00-overview.md` with index, open threads, parked ideas
+10. **Transition** - offer next steps
 
 ## Process Flow
 
@@ -41,6 +44,7 @@ You MUST create a task for each of these items and complete them in order:
 digraph brainstorming {
     "Initialize spec-kit" [shape=box];
     "Explore project context" [shape=box];
+    "Check idea inbox" [shape=box];
     "Related brainstorm exists?" [shape=diamond];
     "Ask clarifying questions" [shape=box];
     "Propose 2-3 approaches" [shape=box];
@@ -51,7 +55,8 @@ digraph brainstorming {
     "Done" [shape=doublecircle];
 
     "Initialize spec-kit" -> "Explore project context";
-    "Explore project context" -> "Related brainstorm exists?";
+    "Explore project context" -> "Check idea inbox";
+    "Check idea inbox" -> "Related brainstorm exists?";
     "Related brainstorm exists?" -> "Ask clarifying questions" [label="no, or user chooses new"];
     "Related brainstorm exists?" -> "Ask clarifying questions" [label="yes, user chooses update"];
     "Ask clarifying questions" -> "Propose 2-3 approaches";
@@ -77,7 +82,31 @@ Spec-kit must be initialized before brainstorming. If `.specify/` directory does
 - Check for constitution (`.specify/memory/constitution.md`)
 - Review recent commits to understand project state
 - Look for related features or patterns
-- Scan `brainstorm/` directory for existing brainstorm documents (triggers revisit detection, see step 3 in checklist)
+- Scan `brainstorm/` directory for existing brainstorm documents (triggers revisit detection, see step 4 in checklist)
+- Check if `brainstorm/idea-inbox.md` exists and has entries (triggers inbox seed offering, see step 3 in checklist)
+
+**Check idea inbox (step 3):**
+
+After exploring project context, check if `brainstorm/idea-inbox.md` exists and contains entries:
+
+1. If the file does not exist or is empty (only the `# Idea Inbox` header), skip — proceed with normal flow.
+2. If entries exist, parse them by `### ` headings. Each entry has metadata fields (Source, Date, Reference, Summary) and a blockquote context snippet.
+3. Group entries by theme slug (the `### ` heading text).
+4. Present the inbox items to the user grouped by theme:
+
+   - header: "Ideas from code reviews"
+   - multiSelect: true
+   - Each theme becomes an option with the theme slug as label and the entry's Summary as description. If multiple entries share the same theme slug, combine their summaries.
+   - Include a "Start fresh" option to skip all inbox items
+
+5. If the user selects one or more themes:
+   - Use the selected entries' Summary and Context fields to pre-fill the problem framing for the brainstorm session
+   - Track which theme slugs were selected (needed for consumption in step 8)
+   - Skip the normal "what do you want to brainstorm?" question — the inbox provides the seed
+
+6. If the user selects "Start fresh" or no items:
+   - Proceed with the normal brainstorm flow unchanged
+   - Inbox items remain untouched
 
 **Assess scope before deep-diving:**
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
@@ -117,15 +146,16 @@ This is the decision point. The brainstorm document captures this agreement.
 
 ### Transition: next steps
 
-After the brainstorm document is written and overview updated, offer the user a choice of how to proceed:
+After the brainstorm document is written and overview updated, present the choice using `AskUserQuestion`:
 
-Use AskUserQuestion with:
 - header: "Next steps"
 - multiSelect: false
 - Options:
   - "Specify step-by-step (/speckit-specify)": "Create a formal spec interactively, then plan and implement in separate steps"
   - "Ship autonomously (/speckit-spex-ship)": "Run the full pipeline (specify, plan, implement, review) with configurable oversight. Best for small to mid-sized features."
   - "Done for now": "Stop here. The brainstorm document is saved for later."
+
+**This MUST be an AskUserQuestion tool call, not a markdown text prompt.** Do NOT output the options as text and wait for a free-form reply.
 
 If the user chooses "Specify step-by-step": invoke `/speckit-specify` with the brainstorm document as context.
 
@@ -201,14 +231,14 @@ Last updated: YYYY-MM-DD
 
 ## Revisit Detection
 
-**When:** During step 3 of the checklist (after exploring project context).
+**When:** During step 4 of the checklist (after checking idea inbox).
 
 **How:**
 1. Check if `brainstorm/` directory exists. If not, skip (no prior brainstorms).
 2. List all `NN-*.md` files in `brainstorm/` (excluding `00-overview.md`).
 3. Extract topic slugs from filenames (the part after the number prefix).
 4. Compare the current brainstorm topic against existing slugs using keyword overlap.
-5. If a related brainstorm document is found, use AskUserQuestion:
+5. If a related brainstorm document is found, present options to the user:
    - **Option A: "Create new document"** - session produces a new numbered file
    - **Option B: "Update existing"** - session appends a new dated section to the existing document
 
@@ -244,10 +274,25 @@ You MUST write the brainstorm document at session end. This step is NOT optional
 
 **Procedure:**
 
-1. **Create directory** if it does not exist:
+1. **Determine output directory** (spex-detach aware):
    ```bash
-   mkdir -p brainstorm/
+   BRAINSTORM_DIR="brainstorm"
+
+   # Check if spex-detach is enabled and has an archive path
+   DETACH_SCRIPT=".specify/extensions/spex/scripts/spex-detach.sh"
+   if [ -n "$DETACH_SCRIPT" ] && [ -x "$DETACH_SCRIPT" ] && "$DETACH_SCRIPT" is-enabled 2>/dev/null; then
+     DETACH_CONFIG=".specify/extensions/spex-detach/spex-detach-config.yml"
+     ARCHIVE_PATH=$(yq -r '.archive.path // empty' "$DETACH_CONFIG" 2>/dev/null)
+     if [ -n "$ARCHIVE_PATH" ] && [ -d "$ARCHIVE_PATH" ]; then
+       BRAINSTORM_DIR="$ARCHIVE_PATH/brainstorm"
+       echo "spex-detach: writing brainstorm to project-specs repo at $BRAINSTORM_DIR"
+     fi
+   fi
+
+   mkdir -p "$BRAINSTORM_DIR"
    ```
+
+   Use `$BRAINSTORM_DIR` instead of `brainstorm/` for all subsequent file operations in this section.
 
 2. **Detect next number** by scanning existing files:
    ```bash
@@ -282,7 +327,14 @@ You MUST write the brainstorm document at session end. This step is NOT optional
    command -v $CLI >/dev/null 2>&1
    ```
 
-   If the CLI is available, use AskUserQuestion:
+   Read the brainstorm label from the collab extension config (if it exists):
+   ```bash
+   COLLAB_CONFIG=".specify/extensions/spex-collab/collab-config.yml"
+   BRAINSTORM_LABEL=$(yq -r '.labels.brainstorm // "brainstorm"' "$COLLAB_CONFIG" 2>/dev/null)
+   BRAINSTORM_LABEL=${BRAINSTORM_LABEL:-brainstorm}
+   ```
+
+   If the CLI is available, present options to the user:
    - header: "Create issue?"
    - multiSelect: false
    - Options:
@@ -302,19 +354,25 @@ You MUST write the brainstorm document at session end. This step is NOT optional
 
    Create the issue (the body is the brainstorm document content):
 
+   **Title format**: Use conventional commit format. Derive the type from the brainstorm content:
+   - New functionality: `feat: <short description>`
+   - Bug fix: `fix: <short description>`
+   - Refactoring: `refactor: <short description>`
+   - Documentation: `docs: <short description>`
+
    For GitHub:
    ```bash
    ISSUE_URL=$(gh issue create $REPO_FLAG \
-     --title "Brainstorm: [topic]" \
-     --label "brainstorm" \
+     --title "<type>: <short description>" \
+     --label "$BRAINSTORM_LABEL" \
      --body "$ISSUE_BODY" 2>&1)
    ```
 
    For GitLab:
    ```bash
    ISSUE_URL=$(glab issue create \
-     --title "Brainstorm: [topic]" \
-     --label "brainstorm" \
+     --title "<type>: <short description>" \
+     --label "$BRAINSTORM_LABEL" \
      --description "$ISSUE_BODY" 2>&1)
    ```
 
@@ -322,9 +380,22 @@ You MUST write the brainstorm document at session end. This step is NOT optional
 
    On success, append `**Issue:** <ISSUE_URL>` to the brainstorm document header (after the Status line) using the Edit tool.
 
-7. **Commit the brainstorm document**:
+7. **Remove consumed inbox entries** (only if the session was seeded from inbox items AND the brainstorm document status is `active`):
+
+   If the brainstorm session was seeded from one or more inbox items (selected in step 3 of the checklist) AND the brainstorm document was written with status `active` (a decision was reached), remove the consumed entries from `brainstorm/idea-inbox.md`. If the session was `parked` or `abandoned`, leave inbox items untouched — the idea was not fully explored and should remain available for future brainstorming.
+
+   - For each consumed theme slug, use the Edit tool to remove the `### <theme-slug>` heading and its entire content block (all lines from the heading through to the next `### ` heading or end of file).
+   - If all entries are consumed, leave the file with just the `# Idea Inbox` header and description line.
+   - If only some entries are consumed, leave the remaining entries intact.
+   - Commit the inbox update together with the brainstorm document.
+
+   If the session was NOT seeded from inbox items (user chose "Start fresh" or inbox was empty), skip this step.
+
+8. **Commit the brainstorm document**:
    ```bash
    git add brainstorm/NN-topic-slug.md
+   # Also stage inbox changes if entries were consumed
+   [ -f brainstorm/idea-inbox.md ] && git add brainstorm/idea-inbox.md
    git commit -m "Add brainstorm: [topic]
 
    Assisted-By: 🤖 Claude Code"
@@ -332,7 +403,7 @@ You MUST write the brainstorm document at session end. This step is NOT optional
 
 ## Updating the Overview
 
-**When:** Step 8 of the checklist (immediately after writing the brainstorm document).
+**When:** Step 9 of the checklist (immediately after writing the brainstorm document).
 
 You MUST update the overview after every brainstorm document write or update. This step is NOT optional.
 
@@ -370,7 +441,7 @@ You MUST update the overview after every brainstorm document write or update. Th
 
 **For sessions with meaningful interaction** (approaches were discussed, questions were answered):
 
-Use AskUserQuestion to ask: **"Save this brainstorm session?"**
+Present to the user: **"Save this brainstorm session?"**
 
 - **Option A: "Save as parked"** - Write the document with status `parked`, update overview
 - **Option B: "Save as abandoned"** - Write the document with status `abandoned`, update overview

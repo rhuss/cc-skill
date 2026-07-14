@@ -1,0 +1,159 @@
+{
+  "exit_code": 0,
+  "duration_s": 567.4,
+  "wall_clock_s": 567.3,
+  "cost_usd": 1.84,
+  "token_usage": {
+    "input": 26,
+    "output": 24635,
+    "cache_read": 631368,
+    "cache_create": 145976
+  },
+  "num_turns": 16,
+  "per_model_usage": {
+    "claude-opus-4-6": {
+      "input": 26,
+      "output": 24635,
+      "cache_read": 631368,
+      "cache_create": 145976,
+      "cost_usd": 1.844039
+    }
+  },
+  "per_model_turns": {
+    "claude-opus-4-6": 16
+  },
+  "num_cases": 5,
+  "model": "claude-opus-4-6",
+  "agent": "claude-code",
+  "agent_version": "2.1.159 (Claude Code)",
+  "execution_mode": "case",
+  "eval_params": {
+    "skill": "skill:check",
+    "skill_args": "{skill_path}",
+    "execution_mode": "case",
+    "max_budget_usd": 100.0,
+    "timeout_s": 3600
+  },
+  "per_case": {
+    "case-001-well-crafted-deploy-skill": {
+      "exit_code": 0,
+      "duration_s": 129.3,
+      "token_usage": {
+        "input": 5,
+        "output": 5796,
+        "cache_read": 122238,
+        "cache_create": 23794
+      },
+      "cost_usd": 0.3547565,
+      "num_turns": 3,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 5,
+          "output": 5796,
+          "cache_read": 122238,
+          "cache_create": 23794,
+          "cost_usd": 0.3547565
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 3
+      }
+    },
+    "case-002-minimal-bare-bones": {
+      "exit_code": 0,
+      "duration_s": 104.9,
+      "token_usage": {
+        "input": 5,
+        "output": 4789,
+        "cache_read": 121081,
+        "cache_create": 22645
+      },
+      "cost_usd": 0.32182175,
+      "num_turns": 3,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 5,
+          "output": 4789,
+          "cache_read": 121081,
+          "cache_create": 22645,
+          "cost_usd": 0.32182175
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 3
+      }
+    },
+    "case-003-mixed-quality-migration": {
+      "exit_code": 0,
+      "duration_s": 106.5,
+      "token_usage": {
+        "input": 6,
+        "output": 4311,
+        "cache_read": 171554,
+        "cache_create": 26125
+      },
+      "cost_usd": 0.35686324999999997,
+      "num_turns": 4,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 6,
+          "output": 4311,
+          "cache_read": 171554,
+          "cache_create": 26125,
+          "cost_usd": 0.35686324999999997
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 4
+      }
+    },
+    "case-004-readonly-analysis-no-scripts": {
+      "exit_code": 0,
+      "duration_s": 101.8,
+      "token_usage": {
+        "input": 5,
+        "output": 4491,
+        "cache_read": 121675,
+        "cache_create": 23238
+      },
+      "cost_usd": 0.31837499999999996,
+      "num_turns": 3,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 5,
+          "output": 4491,
+          "cache_read": 121675,
+          "cache_create": 23238,
+          "cost_usd": 0.31837499999999996
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 3
+      }
+    },
+    "case-005-subtle-present-vs-strong": {
+      "exit_code": 0,
+      "duration_s": 124.9,
+      "token_usage": {
+        "input": 5,
+        "output": 5248,
+        "cache_read": 94820,
+        "cache_create": 50174
+      },
+      "cost_usd": 0.4922225,
+      "num_turns": 3,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 5,
+          "output": 5248,
+          "cache_read": 94820,
+          "cache_create": 50174,
+          "cost_usd": 0.4922225
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 3
+      }
+    }
+  }
+}

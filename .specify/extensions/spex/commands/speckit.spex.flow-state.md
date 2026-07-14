@@ -9,10 +9,10 @@ This command manages the `.specify/.spex-state` file with `"mode": "flow"` to en
 
 ## Execution
 
-Locate and run the `spex-flow-state.sh` script, passing through all arguments:
+Run the `spex-flow-state.sh` script, passing through all arguments:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)"
+FLOW_STATE=".specify/extensions/spex/scripts/spex-flow-state.sh"
 [ -x "$FLOW_STATE" ] || { echo "ERROR: spex-flow-state.sh not found"; exit 1; }
 "$FLOW_STATE" "$@"
 ```

@@ -85,12 +85,19 @@ hooks:
     prompt: Execute speckit.spex.flow-state?
     description: Mark implement as active in flow state
     condition: null
+  - extension: spex-worktrees
+    command: speckit.spex-worktrees.manage
+    enabled: true
+    optional: false
+    prompt: Execute speckit.spex-worktrees.manage?
+    description: Verify worktree isolation before implementation
+    condition: null
   - extension: spex-collab
     command: speckit.spex-collab.phase-split
-    enabled: false
-    optional: true
-    prompt: Review PR split for implementation phases?
-    description: Present phase split proposal before implementation
+    enabled: true
+    optional: false
+    prompt: Execute speckit.spex-collab.phase-split?
+    description: Present phase split proposal and per-phase implementation instructions
     condition: null
   before_checklist:
   - extension: git
@@ -207,7 +214,7 @@ hooks:
     condition: null
   - extension: spex-collab
     command: speckit.spex-collab.reviewers
-    enabled: false
+    enabled: true
     optional: false
     prompt: Execute speckit.spex-collab.reviewers?
     description: Generate REVIEWERS.md after task generation
@@ -272,4 +279,12 @@ hooks:
     optional: false
     prompt: Execute speckit.spex.flow-state?
     description: Remove flow state file after feature completion
+    condition: null
+  before_finish:
+  - extension: spex-detach
+    command: speckit.spex-detach.detach
+    enabled: false
+    optional: true
+    prompt: Archive specs to project-specs repo before finishing?
+    description: Copy spec artifacts to configured archive path
     condition: null

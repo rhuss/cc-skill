@@ -7,7 +7,7 @@ description: "Review specifications for soundness, completeness, and implementab
 ## Ship Pipeline Guard
 
 If `.specify/.spex-state` exists and its `status` is `running`, this command is part of an autonomous pipeline. Check the `ask` field:
-- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT use AskUserQuestion), complete the review autonomously, and return immediately so the pipeline can advance.
+- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT prompt the user interactively), complete the review autonomously, and return immediately so the pipeline can advance.
 - If `ask` is `"always"`: prompt the user as normal.
 
 ```bash
@@ -63,7 +63,7 @@ If this fails (not on a feature branch, no matching spec directory), fall back t
 find specs/ -name "spec.md" -type f 2>/dev/null | head -20
 ```
 
-**If specs found:** Present list and ask user to select one using AskUserQuestion (skip in autonomous mode).
+**If specs found:** Present list and ask user to select one using the agent's interactive prompt mechanism (skip in autonomous mode).
 
 **If no specs found:** Inform user:
 ```
@@ -276,7 +276,7 @@ After presenting the review report:
 
 **If Important issues exist (with or without Minor):**
 
-Present a summary of all Important findings as a numbered list, then ask using `AskUserQuestion` (`multiSelect: false`, header: "Fix"):
+Present a summary of all Important findings as a numbered list, then ask the user (single-select prompt, header: "Fix"):
 
 **"Found N Important issue(s). Fix them now?"**
 
@@ -293,7 +293,7 @@ If the user selects to fix: apply the fixes directly to `spec.md`, then re-displ
 
 **If only Minor issues exist (no Important):**
 
-Present a summary of all Minor findings, then ask using `AskUserQuestion` (`multiSelect: false`, header: "Fix"):
+Present a summary of all Minor findings, then ask the user (single-select prompt, header: "Fix"):
 
 **"Found N Minor issue(s). Fix them now?"**
 
@@ -363,7 +363,31 @@ If the user selects to fix: apply the fixes directly to `spec.md`, then re-displ
 **MANDATORY: Update flow state.** This MUST run on every exit path, including early returns (e.g., "already passed"). Use the flow state script:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-spec
+FLOW_STATE=".specify/extensions/spex-gates/scripts/spex-flow-state.sh" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-spec
 ```
 
 This updates the status line to show `S ✓`.
+
+## Auto-Commit (if enabled)
+
+Check the git extension's auto-commit config. Only commit if the user has enabled auto-commit for this stage:
+
+```bash
+GIT_CONFIG=".specify/extensions/git/git-config.yml"
+AUTO_COMMIT=$(yq -r '.auto_commit.after_specify.enabled // .auto_commit.default // false' "$GIT_CONFIG" 2>/dev/null)
+AUTO_COMMIT=${AUTO_COMMIT:-false}
+```
+
+If `AUTO_COMMIT` is `true` and there are uncommitted changes:
+
+```bash
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard specs/ .specify/ 2>/dev/null)" ]; then
+  git add -u
+  git add specs/ .specify/ 2>/dev/null || true
+  git commit -m "review-spec: gate passed, spec updated
+
+Assisted-By: 🤖 Claude Code"
+fi
+```
+
+Do NOT suggest manual commit commands or next steps. The workflow continues automatically.

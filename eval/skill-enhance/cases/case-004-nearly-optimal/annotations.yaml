@@ -1,0 +1,21 @@
+quality_tier: high
+# This skill has most patterns at strong level. The enhancer should
+# recognize it as nearly optimal and make minimal changes, or
+# detect it as already optimal and halt.
+expected_absent: []
+expected_present:
+  - 8   # In-Skill Examples — review checklist items are examples of what to check, but no dedicated example section
+  - 11  # Self-Correcting Loop — no retry or recovery if gh commands fail
+  - 12  # Plan-Validate-Execute — reviews then reports, but no explicit validation phase
+expected_strong:
+  - 1   # Activation Metadata — full metadata with triggers, exclusions, argument-hint, allowed-tools
+  - 2   # Exclusion Clause — explicit "Do NOT use for creating PRs or merging"
+  - 3   # Context Budget — allowed-tools restricted to Read, Bash, Glob
+  - 5   # Control Tuning — --focus and --brief flags
+  - 6   # Explain-the-Why — "Why This Skill Exists" section and inline "Why this format?" explanation
+  - 7   # Template Scaffold — concrete markdown output template
+  - 9   # Known Gotchas — "Gotcha" callout for large diffs, "Known Limitations" section
+  - 10  # Execution Checklist — clear numbered steps with conditional logic
+expected_improvements: []
+is_already_optimal: false
+original_line_count: 110

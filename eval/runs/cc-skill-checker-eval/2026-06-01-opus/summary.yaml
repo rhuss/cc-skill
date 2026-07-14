@@ -1,0 +1,239 @@
+judges:
+  budget_check:
+    mean: 1.0
+    pass_rate: 1.0
+  checklist_completeness:
+    mean: 1.0
+    pass_rate: 1.0
+  note_specificity:
+    mean: 5.0
+    pass_rate: null
+  pattern_accuracy:
+    mean: 2.4
+    pass_rate: null
+  status_validity:
+    mean: 1.0
+    pass_rate: 1.0
+per_case:
+  case-001-well-crafted-deploy-skill:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $1.84 within budget $2.00
+      value: true
+    checklist_completeness:
+      judge_type: check
+      rationale: 14 patterns, summary present, activation test complete
+      value: true
+    note_specificity:
+      judge_type: llm
+      rationale: Every note in the checklist references specific content from the
+        skill being evaluated. Pattern 1 names the exact trigger verbs ('deploy',
+        'push to staging', 'release to staging', 'test a deployment') and mentions
+        `argument-hint` with positional and flag arguments. Pattern 2 names the adjacent
+        skill (`deploy:production`) and the exclusion target (CI/CD pipeline configuration).
+        Pattern 3 cites specific files (`deploy/services.yaml`, service manifests)
+        and the approximate skill size. Pattern 5 references exact numeric thresholds
+        (0.5% error rate, 120s/300s timeouts) and a specific flag (`--skip-tests`).
+        Pattern 6 quotes an anecdote from the skill ('cost us a 2-hour debugging session
+        twice last quarter'). Pattern 7 names specific placeholders (`${service}`,
+        `${user}`, `${time}`) and identifies the gap (no complete success output template).
+        Pattern 8 notes what exists (`argument-hint`) and what's missing (full deployment
+        output sequence). Pattern 9 references three specific gotchas (image not pushed,
+        test-skipping cost, migration rollback). Pattern 10 cites step numbers and
+        specific gates (halt conditions, canary threshold, health check, rollback
+        flow, `--dry-run`). Pattern 11 describes the specific behavior (canary failure
+        triggers auto-rollback, no retry mechanism). Pattern 12 names `--dry-run`
+        and the missing approval gate. Pattern 13 names specific project scripts (`pre-deploy-check.sh`,
+        `check-canary-metrics.sh`). Pattern 14 references specific fields (`allowed-tools`,
+        `user-invocable`, `disable-model-invocation`). All notes are actionable —
+        a skill author could address each identified gap (add success output template,
+        add in-skill examples, add retry mechanism, add confirmation gate, add disable-model-invocation)
+        based solely on the notes.
+      value: 5
+    pattern_accuracy:
+      judge_type: llm
+      rationale: '10 out of 14 patterns (71.4%) match the expected ratings, falling
+        in the 70-84% range. The checker correctly identified all 6 strong patterns
+        and got patterns 7, 11, 12, and 4 right. However, it made 4 errors: upgrading
+        pattern 3 from present to strong, downgrading pattern 8 from present to absent,
+        marking pattern 13 as N/A instead of present, and marking pattern 14 as present
+        instead of N/A. These errors show systematic issues with boundary judgments
+        between adjacent rating levels and N/A determinations.'
+      value: 3
+    status_validity:
+      judge_type: check
+      rationale: strong=7 present=4 absent=1 n/a=2
+      value: true
+  case-002-minimal-bare-bones:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $1.84 within budget $2.00
+      value: true
+    checklist_completeness:
+      judge_type: check
+      rationale: 14 patterns, summary present, activation test complete
+      value: true
+    note_specificity:
+      judge_type: llm
+      rationale: Every note in the checklist references specific content from the
+        target skill. Pattern 1 quotes the actual description ('Format source code
+        files'), counts it as 4 words, and notes the missing `argument-hint` in the
+        context of needing file paths. Pattern 3 references the exact line count (13
+        lines) and the absence of file loads. Pattern 6 calls out Step 1's three config
+        files and the missing priority order. Pattern 7 quotes Step 3's 'Report which
+        files changed' and notes the missing format template. Pattern 9 lists concrete
+        pitfalls specific to a formatting skill (missing formatter binary, conflicting
+        configs, formatting binary files). Pattern 10 references the three numbered
+        steps and identifies specific gaps (no completion criteria for config discovery,
+        no halt condition if no config exists). Pattern 12 notes the skill modifies
+        source files directly without a dry-run or approval gate. Pattern 14 notes
+        file modification without confirmation. All notes are actionable — a skill
+        author could implement each suggestion (add trigger verbs, add exclusion phrases,
+        add format template for reports, add dry-run step, etc.) without needing to
+        look up the pattern definitions. None of the notes merely restate what the
+        pattern is about; they all diagnose specific issues and suggest concrete fixes.
+      value: 5
+    pattern_accuracy:
+      judge_type: llm
+      rationale: '12 out of 14 patterns match the expected ratings (85.7%). Two mismatches:
+        Pattern 3 (Context Budget) was rated ''present'' when expected ''absent''
+        — the checker''s own notes acknowledged it was incidental rather than deliberate,
+        essentially arguing for absent while rating present. Pattern 14 (Autonomy
+        Calibration) was rated ''absent'' when expected ''N/A'' — the checker treated
+        it as applicable and missing, while the ground truth considers it not applicable
+        for this skill. Overall accuracy of 85.7% falls in the score-4 range.'
+      value: 4
+    status_validity:
+      judge_type: check
+      rationale: strong=0 present=3 absent=9 n/a=2
+      value: true
+  case-003-mixed-quality-migration:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $1.84 within budget $2.00
+      value: true
+    checklist_completeness:
+      judge_type: check
+      rationale: 14 patterns, summary present, activation test complete
+      value: true
+    note_specificity:
+      judge_type: llm
+      rationale: 'Every note in the checklist references specific content from the
+        target skill: line counts (53 lines), specific fields (`argument-hint`, `user-invocable`,
+        `disable-model-invocation`), step numbers (Steps 1-2, Step 4), flag names
+        (`--rollback`, `--status`), file paths (`scripts/verify_schema.py`, `${CLAUDE_PLUGIN_ROOT}`),
+        exact phrases (''Report the number of migrations applied'', ''Report any discrepancies''),
+        environment names (dev/staging/production), and exclusion targets (seed data,
+        backups). The notes are also highly actionable: Pattern 5 says the rollback
+        logic should be a distinct branch replacing Step 3 rather than appended to
+        Step 4; Pattern 6 specifies exactly which ''whys'' are missing (verify schema,
+        check current vs heads separately, step order); Pattern 8 names the specific
+        flag interactions that need examples; Pattern 9 names concrete migration pitfalls
+        (concurrent runs, irreversible DDL, schema drift); Pattern 13 identifies the
+        missing scripts directory and lack of error handling for the missing script;
+        Pattern 14 identifies the specific risk of auto-invocation for non-production
+        environments. None of the notes merely restate the pattern definition — they
+        all diagnose specific issues and implicitly or explicitly suggest fixes.'
+      value: 5
+    pattern_accuracy:
+      judge_type: llm
+      rationale: '7 out of 14 patterns (50%) matched the expected ratings. The checker
+        got several ratings wrong: Pattern 2 and 10 should be strong but were rated
+        present; Pattern 8 should be present but was rated absent; Pattern 3 should
+        be absent but was rated strong; Pattern 11 should be absent but was rated
+        present; Patterns 13 and 14 should be N/A but were rated absent and present
+        respectively. The checker correctly identified patterns 1 (strong), 5/7/12
+        (present), 6/9 (absent), and 4 (N/A). At exactly 50%, this falls at the low
+        end of the Score 2 range.'
+      value: 2
+    status_validity:
+      judge_type: check
+      rationale: strong=2 present=7 absent=4 n/a=1
+      value: true
+  case-004-readonly-analysis-no-scripts:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $1.84 within budget $2.00
+      value: true
+    checklist_completeness:
+      judge_type: check
+      rationale: 14 patterns, summary present, activation test complete
+      value: true
+    note_specificity:
+      judge_type: llm
+      rationale: 'Every note in the checklist references specific content from the
+        skill being evaluated. Pattern 1 cites the four trigger use cases and the
+        omission of argument-hint. Pattern 2 quotes the exclusion clause and names
+        the adjacent skill ''update:deps''. Pattern 3 references Step 3''s instruction
+        to ''Read the lock file to extract all transitive dependencies'' and identifies
+        the specific risk of large lock files. Pattern 5 names exact commands, staleness
+        categories, and output columns as rigid parts, and identifies the specific
+        gap around missing audit tools or ambiguous license fields. Pattern 6 quotes
+        the inline rationale about ''copyleft, may conflict with proprietary code''
+        and pinpoints where rationale is missing (JSON output format, sort order,
+        ecosystem selection). Pattern 7 references the exact column headers ''Package
+        | Version | Latest | ...'' and identifies the missing example row and undefined
+        ''Action Needed'' values. Pattern 8 explains why examples matter by referencing
+        the non-obvious mapping between lock file formats, JSON audit output, and
+        the final report table. Pattern 9 enumerates domain-specific pitfalls: npm
+        audit false positives, audit tools not installed, lock file format variations,
+        monorepo differences. Pattern 10 references the five numbered steps and identifies
+        the specific gap of no halt condition when Step 1 finds no lock files. Pattern
+        14 quotes the exact allowed-tools list and the user-invocable setting. Each
+        note is actionable — a skill author could address every identified gap without
+        needing further clarification.'
+      value: 5
+    pattern_accuracy:
+      judge_type: llm
+      rationale: 'Only 5 out of 14 patterns (35.7%) match the expected ratings. The
+        checker has multiple significant misclassifications: it rated Control Tuning
+        and Explain-the-Why as ''present'' when they should be ''absent''; rated In-Skill
+        Examples as ''absent'' when expected ''present''; rated Plan-Validate-Execute
+        and Self-Correcting Loop as ''N/A'' when they should be ''present'' and ''absent''
+        respectively; and misclassified Utility Bundle and Autonomy Calibration as
+        ''absent''/''strong'' when both should be ''N/A''. The checker also underrated
+        Context Budget and Execution Checklist (present vs. expected strong).'
+      value: 1
+    status_validity:
+      judge_type: check
+      rationale: strong=3 present=5 absent=3 n/a=3
+      value: true
+  case-005-subtle-present-vs-strong:
+    budget_check:
+      judge_type: builtin
+      rationale: Cost $1.84 within budget $2.00
+      value: true
+    checklist_completeness:
+      judge_type: check
+      rationale: 14 patterns, summary present, activation test complete
+      value: true
+    note_specificity:
+      judge_type: llm
+      rationale: 'I''ll evaluate each note in the pattern checklist for specificity,
+        actionability, and avoidance of generic descriptions.
+
+
+        | # | Specificity | Actionable | Non-generic | Assessment |
+
+        |---|-------------|'
+      value: 5
+    pattern_accuracy:
+      judge_type: llm
+      rationale: '7 out of 14 patterns (50%) match expected ratings. The checker systematically
+        under-rates several patterns: it marks patterns 2, 7, 8, and 12 as absent
+        when they should be present, misses pattern 1 being strong, and incorrectly
+        assigns ratings to patterns 13 and 14 that should be N/A. The checker appears
+        overly strict in its evaluations, particularly for patterns where the skill
+        content apparently does have relevant elements that the checker dismisses
+        as insufficient.'
+      value: 2
+    status_validity:
+      judge_type: check
+      rationale: strong=0 present=8 absent=5 n/a=1
+      value: true
+run_id: 2026-06-01-opus
+run_metrics:
+  cache_hit_rate: 0.812185
+  cost_per_mtok_usd: 2.2943
+  cost_per_turn_usd: 0.115
+  output_tokens_per_turn: 1539.69

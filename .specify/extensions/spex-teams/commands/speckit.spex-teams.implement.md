@@ -1,5 +1,5 @@
 ---
-description: "Parallel implementation via Agent Teams for independent tasks"
+description: "Parallel implementation via agent teams for independent tasks"
 ---
 
 # Teams Implement

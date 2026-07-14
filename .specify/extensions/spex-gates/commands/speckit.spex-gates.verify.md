@@ -35,11 +35,13 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 Verify implementation is complete by running tests AND validating spec compliance.
 
 **Key Steps:**
+- **Step 0: Closeout gate** (blocks on unresolved Critical/Important findings)
+- Step 0a: Smoke test reminder
 - Step 1: Run tests (existing behavior)
 - **Step 2: Code hygiene review** (mechanical defect detection)
 - **Step 3: Validate spec compliance** (spec-driven)
 - **Step 4: Check for spec drift** (spec-driven)
-- Blocks completion if tests, code hygiene, OR spec compliance fails
+- Blocks completion if closeout gate, tests, code hygiene, OR spec compliance fails
 
 ## The Iron Law
 
@@ -104,6 +106,71 @@ Use `speckit-spex-brainstorm` or `/speckit-specify` to create one first.
 ```
 
 ## The Process
+
+### 0. Closeout Gate
+
+Before any other verification, check whether unresolved Critical or Important findings remain from a deep review.
+
+Resolve the spec directory (reuse the same `check-prerequisites.sh` logic from the Spec Selection section above):
+
+```bash
+PREREQS=$(.specify/scripts/bash/check-prerequisites.sh --json --paths-only 2>/dev/null) || true
+if [ -n "$PREREQS" ]; then
+  FEATURE_DIR=$(echo "$PREREQS" | jq -r '.FEATURE_DIR' 2>/dev/null)
+fi
+```
+
+Run the closeout gate script:
+
+```bash
+CLOSEOUT_GATE=".specify/extensions/spex-gates/scripts/spex-closeout-gate.sh"
+if [ -x "$CLOSEOUT_GATE" ] && [ -n "${FEATURE_DIR:-}" ]; then
+  GATE_OUTPUT=$("$CLOSEOUT_GATE" "$FEATURE_DIR" 2>&1) || {
+    echo "Closeout gate failed: $GATE_OUTPUT"
+    # STOP: Do not proceed. Unresolved findings must be fixed and review re-run.
+    exit 1
+  }
+fi
+```
+
+**If the gate fails** (exit code non-zero): STOP. Report the blocking findings from the gate output and do not proceed to any further verification steps. The developer must fix the findings and re-run the deep review.
+
+**If the gate passes** (exit code 0, or script not found, or no spec dir): proceed to the next step.
+
+### 0a. Smoke Test Reminder
+
+Before running verification, check if the spec has acceptance scenarios and whether a smoke test has been recorded:
+
+```bash
+# Check if spec has acceptance scenarios
+SPEC_FILE=""
+PREREQS=$(.specify/scripts/bash/check-prerequisites.sh --json --paths-only 2>/dev/null) || true
+if [ -n "$PREREQS" ]; then
+  FEATURE_DIR=$(echo "$PREREQS" | jq -r '.FEATURE_DIR' 2>/dev/null)
+  SPEC_FILE="$FEATURE_DIR/spec.md"
+fi
+
+HAS_SCENARIOS=0
+if [ -n "$SPEC_FILE" ] && [ -f "$SPEC_FILE" ]; then
+  HAS_SCENARIOS=$(grep -c '\*\*Given\*\*' "$SPEC_FILE" 2>/dev/null || echo 0)
+fi
+
+# Check if smoke test was recorded
+SMOKE_TEST_DONE=false
+if [ -f ".specify/.spex-state" ]; then
+  SMOKE_TEST_DONE=$(jq -r '.smoke_test_completed // false' .specify/.spex-state 2>/dev/null)
+fi
+```
+
+**If the spec has acceptance scenarios AND no smoke test was recorded** (`HAS_SCENARIOS` > 0 AND `SMOKE_TEST_DONE` is not `true`):
+
+Display a reminder (informational only, does NOT block verification):
+```
+NOTE: Acceptance scenarios exist but no smoke test was recorded.
+Consider running `/speckit-spex-smoke-test` first to validate runtime behavior.
+```
+
+**If a smoke test was recorded** or **no acceptance scenarios exist**: proceed silently.
 
 ### 1. Run Tests
 

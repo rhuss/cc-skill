@@ -1,0 +1,24 @@
+quality_tier: low
+expected_absent:
+  - 2   # Exclusion Clause
+  - 3   # Context Budget
+  - 5   # Control Tuning
+  - 6   # Explain-the-Why
+  - 7   # Template Scaffold
+  - 8   # In-Skill Examples
+  - 9   # Known Gotchas
+  - 11  # Self-Correcting Loop
+  - 12  # Plan-Validate-Execute
+expected_present:
+  - 1   # Activation Metadata — has name/description but vague
+  - 10  # Execution Checklist — numbered steps but sparse
+expected_strong: []
+expected_improvements:
+  - 1   # Description should get triggers and exclusions
+  - 2   # Should add exclusion clause
+  - 5   # Should add flags like --since, --level, --context
+  - 6   # Should explain why this exists
+  - 9   # Should warn about log rotation, large files, binary logs
+  - 10  # Steps should be more detailed
+is_already_optimal: false
+original_line_count: 15

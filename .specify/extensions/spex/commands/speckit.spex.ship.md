@@ -17,7 +17,7 @@ description: "Autonomous full-cycle workflow: specify through verify with config
 The pipeline is ONE continuous task. It starts at the first stage and runs through the last stage. The ONLY reasons to pause are:
 1. `ask` is `always` AND a review stage has findings requiring user input.
 2. A blocker error occurs (test failure, syntax error, security issue).
-3. All 9 stages have completed.
+3. Stage 7 (review-code) completes: the pipeline is done and presents a completion prompt for the user to decide how to proceed (submit PR, merge directly, or stop).
 
 **After every stage: update the state file, then immediately start the next stage.** No waiting, no confirmation, no stopping.
 
@@ -42,7 +42,7 @@ if [ "$GATES" = "0" ] || [ "$DEEP_REVIEW" = "0" ]; then
   echo "ERROR: speckit-spex-ship requires both spex-gates and spex-deep-review extensions."
   echo ""
   echo "Enable them with:"
-  echo "  specify extension enable spex-gates spex-deep-review"
+  echo "  specify extension enable spex-gates && specify extension enable spex-deep-review"
   echo ""
   echo "Missing extensions:"
   [ "$GATES" = "0" ] && echo "  - spex-gates"
@@ -98,7 +98,6 @@ Parse the invocation arguments. The skill accepts:
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--ask <level>` | `smart` | One of: `always`, `smart`, `never` |
-| `--create-pr` | off | Create a pull request after successful completion |
 | `--resume` | off | Resume an interrupted pipeline from state file |
 | `--start-from <stage>` | (none) | Start from a specific stage (skips prior stages) |
 | `--no-external` | (from config) | Disable all external review tools |
@@ -121,7 +120,9 @@ ERROR: Invalid oversight level "X". Must be one of: always, smart, never
    ```bash
    DEEP_REVIEW_CONFIG=".specify/extensions/spex-deep-review/deep-review-config.yml"
    DEFAULT_CODERABBIT=$(yq -r '.external_tools.coderabbit // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+   DEFAULT_CODERABBIT=${DEFAULT_CODERABBIT:-true}
    DEFAULT_COPILOT=$(yq -r '.external_tools.copilot // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+   DEFAULT_COPILOT=${DEFAULT_COPILOT:-true}
    ```
 
 2. Start with config defaults:
@@ -152,11 +153,11 @@ ERROR: Cannot specify a brainstorm file with --resume. The brainstorm file is re
 
 ### Valid Stage Names for --start-from
 
-The following stage names are accepted: `specify`, `clarify`, `review-spec`, `plan`, `tasks`, `review-plan`, `implement`, `review-code`, `finish`.
+The following stage names are accepted: `specify`, `clarify`, `review-spec`, `plan`, `tasks`, `review-plan`, `implement`, `review-code`.
 
 If an invalid stage name is provided, fail with:
 ```
-ERROR: Invalid stage "X". Valid stages are: specify, clarify, review-spec, plan, tasks, review-plan, implement, review-code, finish
+ERROR: Invalid stage "X". Valid stages are: specify, clarify, review-spec, plan, tasks, review-plan, implement, review-code
 ```
 
 ## Brainstorm File Resolution
@@ -189,7 +190,7 @@ The pipeline tracks its progress in `.specify/.spex-state` as JSON. **All state 
 
 Locate the script and set the absolute state file path:
 ```bash
-SHIP_STATE="$(find ~/.claude -name 'spex-ship-state.sh' 2>/dev/null | head -1)"
+SHIP_STATE=".specify/extensions/spex/scripts/spex-ship-state.sh"
 # Use absolute path so state file location survives CWD changes (e.g., worktree switches)
 export SHIP_STATE_FILE="$(pwd -P)/.specify/.spex-state"
 ```
@@ -201,7 +202,7 @@ export SHIP_STATE_FILE="$(pwd -P)/.specify/.spex-state"
 | Command | What it does |
 |---------|-------------|
 | `spex-ship-state.sh create <brainstorm> [--ask <level>] [--start-from <stage>]` | Create state file at pipeline start |
-| `spex-ship-state.sh advance` | Advance to the next stage (auto-cleans up after stage 8) |
+| `spex-ship-state.sh advance` | Advance to the next stage (auto-cleans up after stage 7) |
 | `spex-ship-state.sh status` | Show current stage and status |
 | `spex-ship-state.sh pause` | Set status to paused |
 | `spex-ship-state.sh fail` | Set status to failed |
@@ -218,6 +219,18 @@ This advances `stage` and `stage_index` to the next stage with `status: running`
 
 **Do NOT manually write JSON to the state file. Always use the script.**
 
+### CWD Recovery After Subagents (Worktree Pipelines)
+
+When the pipeline runs in a worktree, the shell CWD may be reset to the main repo directory after a subagent returns (Stages 2, 5, 6, 7 all use subagents). **After every subagent returns**, recover CWD using the worktree recovery script:
+
+```bash
+WORKTREE_CWD=".specify/extensions/spex/scripts/spex-worktree-cwd.sh"
+RECOVERY_DIR=$("$WORKTREE_CWD")
+[ -n "$RECOVERY_DIR" ] && cd "$RECOVERY_DIR"
+```
+
+The script uses `SHIP_STATE_FILE` (set as an absolute path during initialization) to find the worktree root. It is safe to call unconditionally; it outputs nothing when CWD is already correct or when not in a worktree.
+
 ## Ship Pipeline Guard
 
 The `.specify/.spex-state` file serves as a signal to sub-commands running inside the pipeline. When this file exists with `status: running`, each `/speckit-*` command MUST:
@@ -225,7 +238,7 @@ The `.specify/.spex-state` file serves as a signal to sub-commands running insid
 - Complete its work normally
 - Do NOT output a completion summary
 - Do NOT ask "Shall I proceed?" or similar
-- Do NOT use AskUserQuestion (unless `ask` is `always`)
+- Do NOT prompt the user interactively (unless `ask` is `always`)
 - Return immediately so the pipeline can advance
 
 ### speckit-specify guard
@@ -298,7 +311,7 @@ When `--resume` is set:
 6. Re-validate values from the state file before proceeding:
    - Validate `ask` is one of `always`, `smart`, `never`
    - Validate `brainstorm_file` exists (if resuming the specify stage)
-   - Validate `stage_index` is in range 0-8
+   - Validate `stage_index` is in range 0-7
 
 7. Update the state file with `status: running` before proceeding.
 
@@ -306,7 +319,7 @@ When `--resume` is set:
 
 When `--start-from <stage>` is set:
 
-1. Map the stage name to its index (0-8).
+1. Map the stage name to its index (0-7).
 
 2. Verify that expected artifacts exist for stages that depend on prior output:
    - Stages `clarify` and later need `spec.md` to exist
@@ -332,7 +345,7 @@ When `--start-from <stage>` is set:
 
 ### Rule 1: Every stage runs, in order, no exceptions
 
-When starting a fresh pipeline (no `--start-from`, no `--resume`), you MUST execute ALL 9 stages in sequence: specify, clarify, review-spec, plan, tasks, review-plan, implement, review-code, verify.
+When starting a fresh pipeline (no `--start-from`, no `--resume`), you MUST execute ALL 8 stages in sequence: specify, clarify, review-spec, plan, tasks, review-plan, implement, review-code.
 
 You MUST NOT:
 - Skip a stage because its output artifact already exists
@@ -351,7 +364,7 @@ These are the ONLY two mechanisms for starting at a stage other than specify:
 - `--start-from <stage>`: User's explicit choice to skip prior stages. The user takes responsibility for ensuring prior artifacts exist and are valid.
 - `--resume`: Continues from where a previous run was interrupted, using the state file.
 
-If neither flag is set, the pipeline starts at stage 0 and runs through stage 8. No automatic detection of "oh, we can skip ahead because artifacts exist."
+If neither flag is set, the pipeline starts at stage 0 and runs through stage 7. No automatic detection of "oh, we can skip ahead because artifacts exist."
 
 ### Rule 4: Stage gate validation
 
@@ -378,11 +391,11 @@ The `--ask` flag controls oversight within review stages (how findings are handl
 ### Step 1: Locate the state script
 
 ```bash
-SHIP_STATE="$(find ~/.claude -name 'spex-ship-state.sh' 2>/dev/null | head -1)"
+SHIP_STATE=".specify/extensions/spex/scripts/spex-ship-state.sh"
 [ -x "$SHIP_STATE" ] && echo "SCRIPT_OK: $SHIP_STATE" || echo "SCRIPT_MISSING"
 ```
 
-If `SCRIPT_MISSING`: **STOP**. The spex plugin may not be installed correctly.
+If `SCRIPT_MISSING`: **STOP**. The spex extension may not be installed correctly. Run `specify extension add spex` to install it.
 
 ### Step 2: Create the state file
 
@@ -409,7 +422,7 @@ Only after all three steps complete successfully, proceed to Pipeline Stages bel
 
 ## Pipeline Stages
 
-The pipeline executes 9 stages in fixed order:
+The pipeline executes 8 stages in fixed order:
 
 | Index | Stage | Invocation | Description |
 |-------|-------|------------|-------------|
@@ -421,7 +434,6 @@ The pipeline executes 9 stages in fixed order:
 | 5 | `review-plan` | `/speckit-spex-gates-review-plan` (Subagent) | Validate plan and task quality |
 | 6 | `implement` | `/speckit-implement` (Subagent) | Execute implementation |
 | 7 | `review-code` | `/speckit-spex-gates-review-code` (Subagent) | Spec compliance + code review + deep review |
-| 8 | `finish` | `/speckit-spex-finish` (Subagent) | Verify + merge/PR |
 
 ### Suppressing extension overlay gates
 
@@ -431,9 +443,11 @@ When running inside the ship pipeline, **no `/speckit-*` command may pause for u
 - **`speckit-clarify`**: Do not present questions interactively in `smart` or `never` mode. Auto-select recommended answers.
 - **`speckit-plan`**: Do not ask for confirmation before or after planning. Proceed to the next stage.
 - **`speckit-tasks`**: Do not ask for confirmation. Proceed to the next stage.
-- **`speckit-implement`**: Do not pause at extension overlay gates. Proceed to the next stage.
+- **`speckit-implement`**: **SKIP all `after_implement` extension hooks entirely.** Do not execute review-code, deep-review, or any other after_implement hook. The ship pipeline runs review-code as its own Stage 7 with a separate subagent, so running it inside the implement subagent would be a double execution. When the implement subagent reaches step 10 (extension hooks), it must detect pipeline mode and skip.
 
 Extension overlays (e.g., `spex-gates` adding review after specify) may run their reviews, but their results are informational. Do NOT pause or ask the user before proceeding. The ship pipeline's own stage gate logic handles all oversight decisions.
+
+**Exception: `speckit-implement`** does not run its after_implement hooks at all in pipeline mode (see above). The pipeline handles review-code as a separate stage.
 
 **This is a hard override. If a speckit command prompt says "present to user" or "wait for answer", and `ask` is `smart` or `never`, you answer it yourself and continue.**
 
@@ -478,7 +492,7 @@ Do NOT skip this stage. Clarify may uncover ambiguities that are not obvious fro
 
 1. Read the `ask` level from the state file (default: `smart`).
 3. **BEFORE invoking clarify**, determine the interaction mode:
-   - If `ask` is `smart` or `never`: You are the decision-maker. Do NOT use `AskUserQuestion` or present options to the user. When the clarify process identifies ambiguities, YOU select the recommended option for each question. If no recommendation exists, use your best judgment based on the spec context. Answer all questions yourself, then encode the answers into the spec.
+   - If `ask` is `smart` or `never`: You are the decision-maker. Do NOT prompt the user interactively. When the clarify process identifies ambiguities, YOU select the recommended option for each question. If no recommendation exists, use your best judgment based on the spec context. Answer all questions yourself, then encode the answers into the spec.
    - If `ask` is `always`: Present each question to the user interactively.
 
 4. Invoke `/speckit-clarify` on the generated spec. **The clarify command will try to present interactive questions. In `smart` and `never` modes, this is overridden: answer every question yourself with the recommended option. Do NOT wait for user input. Do NOT display questions with "You can reply with..." prompts. Process all questions in a single pass and update the spec.**
@@ -573,10 +587,95 @@ This stage runs in an isolated subagent to prevent context accumulation in the o
    INDEPENDENT_TASKS=$(grep -c '\[P\]' "$FEATURE_DIR/tasks.md" 2>/dev/null || echo 0)
    ```
 
+   Before spawning the subagent, check if per-task test checkpoints are enabled:
+   ```bash
+   SPEX_CONFIG=".specify/extensions/spex/spex-config.yml"
+   TEST_BETWEEN_TASKS=$(yq -r '.implement.test_between_tasks // true' "$SPEX_CONFIG" 2>/dev/null)
+   TEST_BETWEEN_TASKS=${TEST_BETWEEN_TASKS:-true}
+   ```
+
+   Build the test checkpoint instruction block (only when `TEST_BETWEEN_TASKS` is `true`):
+
+   ```
+   TEST_CHECKPOINT_INSTRUCTIONS=""
+   if [ "$TEST_BETWEEN_TASKS" = "true" ]; then
+     TEST_CHECKPOINT_INSTRUCTIONS="
+   IMPORTANT: Per-task test checkpoints are ENABLED. After completing each task
+   in tasks.md (before starting the next task), you MUST:
+
+   1. Auto-detect the project's test command using this priority:
+      - If a Makefile exists with a 'test' target: run 'make test'
+      - If package.json exists with a 'test' script: run 'npm test'
+      - If go.mod exists: run 'go test ./...'
+      - If pytest is available and Python files exist: run 'pytest'
+      - If Cargo.toml exists: run 'cargo test'
+      - If none detected: skip checkpoints with a warning ('No test command detected, skipping inter-task checks')
+
+   2. Run the detected test command after each completed task.
+
+   3. If tests PASS: proceed to the next task without interruption.
+
+   4. If tests FAIL: attempt to fix the failure. You get a maximum of 2 fix
+      attempts per checkpoint. If the fix succeeds, continue to the next task.
+      If both attempts fail, STOP implementation and report the failing tests
+      with context about which task introduced the regression.
+   "
+   fi
+   ```
+
+   Check if mid-implementation review checkpoints should be enabled:
+   ```bash
+   DEEP_REVIEW_ENABLED=$(jq -r '.extensions["spex-deep-review"].enabled // false' .specify/extensions/.registry 2>/dev/null)
+   SPEX_CONFIG=".specify/extensions/spex/spex-config.yml"
+   REVIEW_CHECKPOINTS=$(yq -r '.implement.review_checkpoints // true' "$SPEX_CONFIG" 2>/dev/null)
+   REVIEW_CHECKPOINTS=${REVIEW_CHECKPOINTS:-true}
+   TOTAL_TASKS=$(grep -c '^\- \[.\]' "$FEATURE_DIR/tasks.md" 2>/dev/null || echo 0)
+   ```
+
+   Build the checkpoint instruction block (only when `DEEP_REVIEW_ENABLED` is `true`, `REVIEW_CHECKPOINTS` is `true`, and `TOTAL_TASKS` >= 3):
+
+   ```
+   CHECKPOINT_INSTRUCTIONS=""
+   if [ "$DEEP_REVIEW_ENABLED" = "true" ] && [ "$REVIEW_CHECKPOINTS" = "true" ] && [ "$TOTAL_TASKS" -ge 3 ]; then
+     CP1=$(( TOTAL_TASKS / 3 ))
+     CP2=$(( TOTAL_TASKS * 2 / 3 ))
+     CHECKPOINT_INSTRUCTIONS="
+   IMPORTANT: Mid-implementation review checkpoints are ENABLED.
+   Total tasks: $TOTAL_TASKS. Checkpoint 1 after task $CP1, checkpoint 2 after task $CP2.
+
+   After completing task $CP1 (checkpoint 1/3), pause implementation and spawn a fresh-context Agent (subagent_type: general-purpose) with this prompt:
+
+     'You are a correctness review agent for a mid-implementation checkpoint.
+     Review the implementation so far against the spec at <SPEC_PATH>.
+     Focus ONLY on correctness: does the code match the spec requirements
+     for the tasks completed so far? Report findings with file paths and
+     line numbers. Do NOT review architecture, security, production readiness,
+     or test quality. If you find no issues after careful review, confirm
+     with: No correctness issues found.'
+
+   After the review agent returns:
+   - If findings exist, fix them (max 2 attempts per finding).
+   - Record results: run the spex-ship-state.sh script with:
+     checkpoint-record --checkpoint 1 --findings <N> --fixed <N>
+     (where N is the count of findings found and fixed respectively)
+   - If the review agent times out or fails, skip the checkpoint with a
+     warning ('Checkpoint 1/3 skipped: review agent failed'), record
+     findings=0 fixed=0, and continue implementation.
+   - Then continue to the next task.
+
+   After completing task $CP2 (checkpoint 2/3), repeat the same process:
+   spawn a fresh correctness review agent, fix findings, and record results
+   with --checkpoint 2.
+   "
+   fi
+   ```
+
+   If `TOTAL_TASKS` < 3 and checkpoints would otherwise be enabled, the checkpoint instructions are simply omitted (no explicit comment needed in the prompt).
+
    If `TEAMS_ENABLED` is `true` AND `INDEPENDENT_TASKS` >= 2, route to teams implement by spawning a subagent with:
 
    ```
-   You are executing the implementation stage of a speckit-spex-ship pipeline using Agent Teams.
+   You are executing the implementation stage of a speckit-spex-ship pipeline using parallel agent teams.
 
    Feature directory: <FEATURE_DIR>
    Spec: <FEATURE_DIR>/spec.md
@@ -586,6 +685,14 @@ This stage runs in an isolated subagent to prevent context accumulation in the o
    Read these files, then invoke /speckit.spex-teams.implement to execute parallel implementation.
    The .specify/.spex-state file exists with status "running", so the
    implement command will run in pipeline mode (no completion summary, no user questions).
+
+   IMPORTANT: SKIP ALL after_implement extension hooks (step 10 of the implement skill).
+   Do NOT execute review-code, deep-review, or any other after_implement hook.
+   The ship pipeline runs review-code as a separate Stage 7.
+
+   <TEST_CHECKPOINT_INSTRUCTIONS>
+
+   <CHECKPOINT_INSTRUCTIONS>
 
    When marking tasks complete in tasks.md, use the Edit tool.
    Report a brief summary of completed tasks when done.
@@ -604,6 +711,14 @@ This stage runs in an isolated subagent to prevent context accumulation in the o
    Read these files, then invoke /speckit-implement to execute the implementation.
    The .specify/.spex-state file exists with status "running", so the
    implement command will run in pipeline mode (no completion summary, no user questions).
+
+   IMPORTANT: SKIP ALL after_implement extension hooks (step 10 of the implement skill).
+   Do NOT execute review-code, deep-review, or any other after_implement hook.
+   The ship pipeline runs review-code as a separate Stage 7.
+
+   <TEST_CHECKPOINT_INSTRUCTIONS>
+
+   <CHECKPOINT_INSTRUCTIONS>
 
    When marking tasks complete in tasks.md, use the Edit tool.
    Report a brief summary of completed tasks when done.
@@ -644,50 +759,65 @@ This stage runs in an isolated subagent so the reviewer has no implementation co
    ```
 
 3. When the subagent returns, capture its summary (compliance score, gate outcome, finding counts).
+
+   **CWD recovery (worktree):** Run the CWD recovery script (see "CWD Recovery After Subagents" above).
+
 4. Apply **Oversight Decision Logic** to any remaining findings reported by the subagent.
-5. After findings are resolved, run `"$SHIP_STATE" advance` then **immediately** begin Stage 8 (do not stop).
+5. After findings are resolved, run `"$SHIP_STATE" advance` to mark the pipeline as complete. The advance command at index 7 outputs `PIPELINE_COMPLETE`.
 
-### Stage 8: Finish (Forked Subagent)
+### Post-Pipeline: Completion Prompt (Always Interactive)
 
-This stage runs in an isolated subagent for clean final verification and completion without accumulated context from prior stages. It combines verification (stamp) with merge/PR options into a single step.
+After `PIPELINE_COMPLETE`, the pipeline is done. Present the user with a choice of how to proceed. This prompt is **always interactive**, regardless of the `ask` level. It is NOT a pipeline stage (no stage index, no status line entry).
 
-1. Resolve the spec directory:
-   ```bash
-   PREREQS=$(.specify/scripts/bash/check-prerequisites.sh --json --paths-only 2>/dev/null)
-   FEATURE_DIR=$(echo "$PREREQS" | jq -r '.FEATURE_DIR')
+**CRITICAL: Stay on the feature branch.** Do NOT switch to main, do NOT run `git checkout`, do NOT clean up worktrees, and do NOT remove the state file at this point. The user must choose how to proceed first. Branch switching only happens inside `/speckit-spex-finish` if the user selects "Merge directly".
+
+**Do NOT check for smoke test scenarios, do NOT announce smoke test phases, do NOT spawn smoke test subagents.** The smoke test runs inside `/speckit-spex-finish` via the `before_finish` hook. The post-pipeline prompt is ONLY the choice below.
+
+1. Output a one-line summary, then IMMEDIATELY present the choice using `AskUserQuestion`:
+
+   Output: `Pipeline complete (8/8 stages passed). Consider running /clear before proceeding to free context.`
+
+   Then present options to the user:
+   - header: "Complete"
+   - multiSelect: false
+   - Options:
+     - "Submit PR (Recommended)": "Push branch and create a pull request for team review"
+     - "Merge directly": "Run /speckit-spex-finish to smoke test, squash, and merge to main"
+     - "Stop here": "Do nothing now. Run /speckit-spex-submit or /speckit-spex-finish later"
+
+   **This MUST be an AskUserQuestion tool call, not a markdown text prompt.** Do NOT output the options as text and wait for a free-form reply.
+
+2. **If "Submit PR":**
+
+   Invoke `/speckit-spex-submit` directly in the current session.
+
+   After submit completes, output:
+   ```
+   Pipeline complete. PR created.
+   Run `/speckit-spex-finish` after reviews are approved.
    ```
 
-2. Determine if `--create-pr` should be passed:
-   ```bash
-   CREATE_PR_FLAG=""
-   if [ -f ".specify/.spex-state" ]; then
-     CREATE_PR=$(jq -r '.create_pr // false' .specify/.spex-state 2>/dev/null)
-     if [ "$CREATE_PR" = "true" ]; then
-       CREATE_PR_FLAG="--create-pr"
-     fi
-   fi
+3. **If "Merge directly":**
+
+   Invoke `/speckit-spex-finish` directly in the current session.
+
+   After finish completes, output:
+   ```
+   Pipeline complete. Code landed on main.
    ```
 
-3. Spawn a subagent using the Agent tool with the following prompt:
+4. **If "Stop here":**
 
+   Output:
    ```
-   You are executing the finish stage of a speckit-spex-ship pipeline.
+   Pipeline complete through review.
 
-   Feature directory: <FEATURE_DIR>
-   Spec: <FEATURE_DIR>/spec.md
-
-   Invoke /speckit-spex-finish <CREATE_PR_FLAG> for final verification and completion.
-   This runs tests, validates spec compliance, checks for drift,
-   then merges or creates a PR based on the pipeline configuration.
-   The .specify/.spex-state file exists with status "running", so
-   complete autonomously and return immediately.
-
-   Report pass/fail and completion action taken.
+   When ready:
+     /speckit-spex-submit    Push and create PR
+     /speckit-spex-finish    Smoke test + squash + merge to main
    ```
 
-4. When the subagent returns, capture its summary.
-5. If finish passes (verification + completion action succeeded), run `"$SHIP_STATE" advance` (this outputs `PIPELINE_COMPLETE`). Report the subagent's summary as the final pipeline result.
-6. If finish fails (verification did not pass), apply **Oversight Decision Logic**.
+5. **STOP.**
 
 ## Oversight Decision Logic
 
@@ -799,16 +929,13 @@ After the user responds:
 
 ## Pipeline Completion
 
-After Stage 8 (finish) completes successfully, the finish command handles everything: verification, merge/PR, worktree cleanup, and state file removal.
-
-1. Calculate elapsed time from `started_at`.
-2. Report completion summary:
+After review-code completes and `PIPELINE_COMPLETE` fires, report the completion summary before the choice prompt:
 
 ```
 ## Pipeline Complete
 
 **Feature branch:** <branch-name>
-**Stages completed:** 9/9
+**Stages completed:** 8/8
 **Oversight mode:** <mode>
 **Elapsed time:** <duration>
 
@@ -821,10 +948,9 @@ All stages passed successfully:
   5. review-plan - plan validated
   6. implement   - code implemented
   7. review-code - code reviewed
-  8. finish      - verified + completed
 ```
 
-3. Report the action taken by finish (merge, PR created, or kept as-is) from the subagent summary.
+Then present the post-pipeline completion prompt (see "Post-Pipeline: Completion Prompt" above).
 
 ## Integration
 
@@ -842,6 +968,9 @@ All stages passed successfully:
 - `/speckit-spex-gates-review-plan` (Stage 5)
 - `/speckit-implement` (Stage 6)
 - `/speckit-spex-gates-review-code` (Stage 7)
-- `/speckit-spex-finish` (Stage 8)
+
+**This skill invokes (post-pipeline completion prompt, interactive):**
+- `/speckit-spex-submit` (if user chooses "Submit PR")
+- `/speckit-spex-finish` (if user chooses "Merge directly")
 
 **Required extensions:** `spex-gates`, `spex-deep-review`

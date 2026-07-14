@@ -1,18 +1,18 @@
 ---
-description: "Unified team orchestration: parallel task implementation with spec guardian review pattern via Claude Code Agent Teams"
+description: "Unified team orchestration: parallel task implementation with spec guardian review pattern via parallel agent teams"
 ---
 
 # Teams Orchestration: Parallel Task Implementation
 
 ## Overview
 
-This command orchestrates parallel task implementation using Claude Code Agent Teams. The lead session analyzes the task dependency graph, spawns teammates in isolated worktrees for independent task groups, reviews all changes against spec.md via the spec guardian pattern, and coordinates merges. The spec guardian review loop is always-on: every teammate's work is reviewed for spec compliance before merging.
+This command orchestrates parallel task implementation using parallel agent teams. The lead session analyzes the task dependency graph, spawns teammates in isolated worktrees for independent task groups, reviews all changes against spec.md via the spec guardian pattern, and coordinates merges. The spec guardian review loop is always-on: every teammate's work is reviewed for spec compliance before merging.
 
 ## Prerequisites
 
-### CC Teams Feature Flag
+### Parallel Agent Teams Prerequisite
 
-Check if Agent Teams is enabled:
+Enable Claude Code Agent Teams by setting the feature flag:
 
 ```bash
 # Check settings.local.json for the feature flag
@@ -26,11 +26,13 @@ FLAG=$(jq -r '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // ""' .claude/settings.
    jq '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' .claude/settings.local.json > /tmp/settings.json && mv /tmp/settings.json .claude/settings.local.json
    ```
 2. Inform the user: "Agent Teams feature flag has been enabled. Please restart Claude Code for teams to activate."
-3. **Fall back to sequential implementation** for this session (teams will work on next run).
+3. **Fall back to sequential execution** for this session (teams will work on next run).
 
 **If the flag is set:** Proceed with team orchestration.
 
 **If the flag becomes unset mid-session** (e.g., user restarts without it): The pre-flight check runs at skill invocation time, not continuously. If the env var disappears mid-session, already-spawned teammates continue working. On next invocation, the check will catch the missing flag and fall back to sequential.
+
+**If teams are available:** Proceed with team orchestration.
 
 ## Task Graph Analysis
 
@@ -53,10 +55,10 @@ Evaluate whether teams add value:
 ### Spawn Rules
 
 - Spawn **one teammate per independent task group** (not one per task)
-- **Maximum 5 teammates** (CC Teams best practice for coordination overhead)
+- **Maximum 5 teammates** (best practice for coordination overhead)
 - If more than 5 independent groups, batch them: assign multiple groups to the same teammate sequentially
 - **Never spawn more teammates than independent groups**
-- **isolation: "worktree"** - each teammate gets its own git worktree for clean file isolation
+- Each teammate gets its own git worktree for clean file isolation
 
 ### Spawn Prompt Template
 
@@ -131,6 +133,14 @@ When teams cannot be used (feature flag not active, single task, linear dependen
 Execute tasks sequentially in the current session following the standard implementation flow from tasks.md. This is the normal behavior when the teams trait is not active.
 
 **Mixed independence**: When some tasks are independent and others are sequential (e.g., 1 of 3 tasks is independent, 2 are sequential), group the sequential tasks together as one teammate's workload and assign the independent task to a separate teammate. If only one independent group results, fall back to sequential execution.
+
+## Multi-Agent Dispatch
+
+The parallel dispatch mechanism varies by harness:
+
+Use the **Agent** tool with `team_name` to spawn teammates in isolated worktrees.
+
+If the current harness does not support parallel dispatch, execute tasks sequentially in the current session.
 
 ## Key Principles
 

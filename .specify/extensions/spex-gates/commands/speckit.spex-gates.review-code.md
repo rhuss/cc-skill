@@ -7,7 +7,7 @@ description: "Review code against spec compliance with deviation tracking and ev
 ## Ship Pipeline Guard
 
 If `.specify/.spex-state` exists and its `status` is `running`, this command is part of an autonomous pipeline. Check the `ask` field:
-- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT use AskUserQuestion), complete the review autonomously, and return immediately so the pipeline can advance.
+- If `ask` is `"smart"` or `"never"`: suppress all user prompts (do NOT prompt the user interactively), complete the review autonomously, and return immediately so the pipeline can advance.
 - If `ask` is `"always"`: prompt the user as normal.
 
 ```bash
@@ -31,7 +31,7 @@ In autonomous mode: do NOT output a completion summary, do NOT ask "Shall I proc
 If review-code is running, implementation is by definition done. Mark it immediately so the status line shows `impl ✓` during the review:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" implemented && "$FLOW_STATE" running review-code
+FLOW_STATE=".specify/extensions/spex-gates/scripts/spex-flow-state.sh" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" implemented && "$FLOW_STATE" running review-code
 ```
 
 ## IMPORTANT: Deep Review Extension Check
@@ -43,7 +43,7 @@ FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" 
 jq -r '.extensions["spex-deep-review"].enabled // false' .specify/extensions/.registry 2>/dev/null
 ```
 
-If deep review is enabled, this command MUST invoke `speckit.spex-deep-review.review` after spec compliance passes (>= 95%). Do NOT produce only a basic compliance review when deep-review is active. The deep review dispatches 5 specialized agents, runs a fix loop, and generates a Deep Review Report. See step 9a below for details.
+If deep review is enabled, this command MUST invoke `speckit.spex-deep-review.run` after spec compliance passes (>= 95%). Do NOT produce only a basic compliance review when deep-review is active. The deep review dispatches 5 specialized agents, runs a fix loop, and generates a Deep Review Report. See step 9a below for details.
 
 ## Overview
 
@@ -80,7 +80,7 @@ If this fails (not on a feature branch, no matching spec directory), fall back t
 find specs/ -name "spec.md" -type f 2>/dev/null | head -20
 ```
 
-**If specs found:** Present list and ask user to select one using AskUserQuestion (skip in autonomous mode).
+**If specs found:** Present list and ask user to select one using the agent's interactive prompt mechanism (skip in autonomous mode).
 
 **If no specs found:** Inform user:
 ```
@@ -276,7 +276,9 @@ Flags are consumed and removed from the argument string. The remaining text (if 
 # 1. Read defaults from deep-review extension config (all default to true if key is missing)
 DEEP_REVIEW_CONFIG=".specify/extensions/spex-deep-review/deep-review-config.yml"
 DEFAULT_CODERABBIT=$(yq -r '.external_tools.coderabbit // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+DEFAULT_CODERABBIT=${DEFAULT_CODERABBIT:-true}
 DEFAULT_COPILOT=$(yq -r '.external_tools.copilot // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+DEFAULT_COPILOT=${DEFAULT_COPILOT:-true}
 
 # 2. If config file is missing, default all tools to true
 ```
@@ -304,7 +306,7 @@ Resolution logic:
 **After spec compliance is calculated, check for deep review:**
 
 **If deep review is enabled AND spec compliance >= 95% (or no spec exists):**
-- Invoke `speckit.spex-deep-review.review` with:
+- Invoke `speckit.spex-deep-review.run` with:
   - Stage 1 compliance score (or null if no spec)
   - Invocation context: `quality-gate` if called from hook, `manual` if called directly
   - Hint text: remaining argument text after flag extraction
@@ -401,7 +403,7 @@ This is not just code quality review; it's **spec validation**.
 **MANDATORY: Update flow state.** This MUST run on every exit path. Use the flow state script:
 
 ```bash
-FLOW_STATE="$(find ~/.claude -name 'spex-flow-state.sh' 2>/dev/null | head -1)" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
+FLOW_STATE=".specify/extensions/spex-gates/scripts/spex-flow-state.sh" && [ -x "$FLOW_STATE" ] && "$FLOW_STATE" gate review-code && "$FLOW_STATE" implemented
 ```
 
 This updates the status line to show both `impl ✓` and `R ✓`. If code review passed, implementation is by definition complete.
@@ -412,8 +414,9 @@ After code review passes, tell the user:
 
 ```
 Code review complete. To close out this feature:
-  1. /clear                    (free context for final gate)
-  2. /speckit-spex-finish       (verify + merge/PR, all-in-one)
+  1. /speckit-spex-smoke-test    (walk through acceptance scenarios)
+  2. /clear                      (free context for final gate)
+  3. /speckit-spex-finish         (verify + merge/PR, all-in-one)
 ```
 
 This prompt is mandatory on every PASS exit. The user needs to know how to finalize.

@@ -1,0 +1,181 @@
+name: cc-skill-checker-eval
+description: Evaluate skill:check — a read-only analyzer that scores SKILL.md files against 14 skill-authoring patterns
+skill: "skill:check"
+
+execution:
+  mode: case
+  arguments: "{skill_path}"
+
+runner:
+  type: claude-code
+  plugin_dirs:
+    - skill
+
+models:
+  skill: claude-opus-4-6
+  judge: claude-opus-4-6
+
+permissions:
+  allow:
+    - "Skill"
+  deny: []
+
+mlflow:
+  experiment: cc-skill-checker-eval
+
+dataset:
+  path: cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: YAML with 'skill_path' (relative path to a SKILL.md file
+      to evaluate, provisioned as a companion file in the case directory).
+    - annotations.yaml: Expected evaluation metadata including:
+      - 'expected_strong' (list of pattern numbers expected to score 'strong')
+      - 'expected_present' (list of pattern numbers expected to score 'present')
+      - 'expected_absent' (list of pattern numbers expected to score 'absent')
+      - 'expected_na' (list of pattern numbers expected to be 'N/A')
+      - 'total_applicable' (integer — number of applicable patterns)
+      - 'quality_tier' (string — 'high', 'medium', or 'low' overall quality)
+    - target-skill/SKILL.md: The actual SKILL.md file to be evaluated.
+      This is provisioned into the workspace so the skill can read it.
+
+outputs:
+  - path: output
+    schema: |
+      This is a stdout-only skill — all output is in the conversation.
+      The conversation contains a markdown report with:
+      1. Pattern Checklist: table with 14 rows, columns #/Pattern/Category/Status/Notes.
+         Status values: strong, present, absent, N/A.
+      2. Summary line: "X of Y applicable patterns present, Z strong, W improvements suggested"
+      3. Activation Test: trigger scenarios, non-trigger scenarios, observations
+      4. Optional Prompt Pattern Analysis (if prompt plugin available)
+      Judges should use {{ conversation }} to access this output.
+
+traces:
+  stdout: true
+  stderr: true
+  events: true
+  metrics: true
+
+judges:
+  - name: budget_check
+    builtin: cost_budget
+    arguments:
+      max_cost_usd: 2.0
+
+  - name: checklist_completeness
+    description: |
+      Verify the output contains all 14 pattern rows in the checklist table,
+      a summary line with correct math, and an activation test section.
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      issues = []
+      # Check for pattern table
+      rows = re.findall(r'\|\s*\d+\s*\|', text)
+      if len(rows) < 14:
+          issues.append(f"Only {len(rows)} pattern rows (expected 14)")
+      # Check for summary line
+      summary = re.search(r'(\d+)\s+of\s+(\d+)\s+applicable', text)
+      if not summary:
+          issues.append("Missing summary line")
+      # Check activation test
+      if not re.search(r'[Aa]ctivation [Tt]est', text):
+          issues.append("Missing Activation Test section")
+      if not re.search(r'[Ww]ould trigger on', text, re.IGNORECASE):
+          issues.append("Missing trigger scenarios")
+      if not re.search(r'[Ss]hould NOT trigger on', text, re.IGNORECASE):
+          issues.append("Missing non-trigger scenarios")
+      if issues:
+          return (False, "; ".join(issues))
+      return (True, f"{len(rows)} patterns, summary present, activation test complete")
+
+  - name: status_validity
+    description: |
+      Verify all pattern statuses use valid values (strong, present, absent, N/A)
+      and that the summary counts are mathematically consistent.
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      valid = {"strong", "present", "absent", "n/a"}
+      statuses = re.findall(r'\|\s*\d+\s*\|[^|]+\|[^|]+\|\s*(\w[\w/]*)\s*\|', text)
+      invalid = [s for s in statuses if s.lower() not in valid]
+      if invalid:
+          return (False, f"Invalid statuses: {invalid}")
+      if len(statuses) < 14:
+          return (False, f"Only {len(statuses)} statuses found")
+      counts = {v: sum(1 for s in statuses if s.lower() == v) for v in valid}
+      total = counts["strong"] + counts["present"] + counts["absent"] + counts["n/a"]
+      if total != 14:
+          return (False, f"Status count {total} != 14")
+      return (True, f"strong={counts['strong']} present={counts['present']} absent={counts['absent']} n/a={counts['n/a']}")
+
+  - name: note_specificity
+    description: |
+      Evaluate whether the notes in the pattern checklist are specific and
+      actionable, referencing actual skill content rather than generic descriptions.
+    prompt: |
+      You are evaluating the output of a skill checker that analyzes SKILL.md files
+      against 14 skill-authoring patterns.
+
+      Here is the skill checker's output:
+
+      {{ conversation }}
+
+      Evaluate the NOTES column in the pattern checklist table. For each note:
+      1. Does it reference specific content from the skill being evaluated (section names, field names, phrases)?
+      2. Is it actionable — could a skill author fix the issue based on the note alone?
+      3. Does it avoid generic pattern descriptions (e.g., "this pattern is about X")?
+
+      Score on a 1-5 scale:
+      Score 1: Most notes are generic or just restate the pattern definition
+      Score 2: Some notes reference specific content but most are vague
+      Score 3: Most notes reference specific content, a few are generic
+      Score 4: Nearly all notes are specific and actionable with minor exceptions
+      Score 5: All notes reference specific skill content and provide clear, actionable guidance
+
+  - name: pattern_accuracy
+    description: |
+      Verify that the pattern quality classifications (strong/present/absent/N/A)
+      are accurate for the specific SKILL.md being evaluated.
+    prompt: |
+      You are validating the accuracy of a skill checker's pattern evaluation.
+
+      Here is the checker's output:
+
+      {{ conversation }}
+
+      And here are the expected annotations for this test case:
+
+      {{ annotations }}
+
+      If annotations include expected_strong, expected_present, expected_absent, or
+      expected_na lists, compare the checker's ratings against these expectations.
+      Count how many patterns match the expected rating.
+
+      If no annotations are available, evaluate 3-5 randomly chosen patterns by
+      reasoning about whether the status (strong/present/absent/N/A) makes sense
+      given the skill content described in the notes.
+
+      Score on a 1-5 scale:
+      Score 1: Fewer than 50% of checked patterns have correct ratings
+      Score 2: 50-69% correct ratings
+      Score 3: 70-84% correct ratings
+      Score 4: 85-94% correct ratings
+      Score 5: 95-100% correct ratings or all annotations match
+
+thresholds:
+  budget_check:
+    min_pass_rate: 1.0
+  checklist_completeness:
+    min_pass_rate: 1.0
+  status_validity:
+    min_pass_rate: 1.0
+  note_specificity:
+    min_mean: 3.5
+  pattern_accuracy:
+    min_mean: 3.5

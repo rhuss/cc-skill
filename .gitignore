@@ -1,3 +1,6 @@
+# MCP config (contains auth tokens)
+.mcp.json
+
 # Claude Code local settings
 
 # spex: generated/local files (only constitution is committed)

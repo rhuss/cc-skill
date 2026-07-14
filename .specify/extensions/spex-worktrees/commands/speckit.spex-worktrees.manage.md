@@ -11,6 +11,7 @@ argument-hint: "[list|cleanup|finish]"
 This command manages git worktrees to isolate feature development. It supports four actions:
 
 - **create**: Called by the `after_specify` hook after `speckit-specify` completes. Creates a worktree, restores `main`, and prints switch instructions.
+- **ensure**: Called by the `before_implement` hook. Verifies worktree isolation exists. If already in a worktree, proceeds silently. If not, creates one (same as `create`).
 - **list**: Shows all active feature worktrees with path, branch, and feature name.
 - **finish**: Merges the current worktree's branch into the default branch and removes the worktree. Use when implementation is complete.
 - **cleanup**: Detects worktrees whose branches are merged and offers removal.
@@ -20,6 +21,7 @@ This command manages git worktrees to isolate feature development. It supports f
 Determine the action from the argument:
 
 - If invoked with argument `create` (from the `after_specify` hook): the action is **create**. Execute immediately, no confirmation needed.
+- If invoked with argument `ensure` (from the `before_implement` hook): the action is **ensure**. See Action: Ensure below.
 - If invoked with argument `finish`: the action is **finish**.
 - If invoked with argument `cleanup`: the action is **cleanup**.
 - Otherwise (no args, `list`, or invoked directly): the action is **list**.
@@ -38,14 +40,14 @@ This action runs after `speckit-specify` has created a feature branch and spec f
 
 ### Step 1: Read Configuration
 
-Read `base_path` from the worktrees extension config (or default to `..`):
+Read `base_path` from the worktrees extension config (or default to `.claude/worktrees`):
 
 ```bash
 WORKTREE_CONFIG=".specify/extensions/spex-worktrees/worktree-config.yml"
-BASE_PATH=$(yq -r '.worktrees.base_path // ".."' "$WORKTREE_CONFIG" 2>/dev/null || echo "..")
+BASE_PATH=$(yq -r '.worktrees.base_path // ".claude/worktrees"' "$WORKTREE_CONFIG" 2>/dev/null || echo ".claude/worktrees")
 ```
 
-Default: `..` (sibling directory to the repo root).
+Default: `.claude/worktrees` (inside the project directory, keeps CWD stable for the coding agent).
 
 ### Step 2: Get Current Branch
 
@@ -75,10 +77,29 @@ If inside a worktree, skip the entire create action. Do not proceed to any subse
 
 ### Step 4: Compute Target Path and Validate
 
-Derive the repo name from the repository root and build the worktree path:
+Determine if the worktree should be inside or outside the project, then build the path:
 
 ```bash
-REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+# Detect inside-project worktrees (.claude/worktrees is the default)
+INSIDE_PROJECT=false
+case "$BASE_PATH" in
+  .claude/worktrees*) INSIDE_PROJECT=true ;;
+esac
+```
+
+**If inside project** (`INSIDE_PROJECT` is `true`):
+
+```bash
+mkdir -p "$REPO_ROOT/$BASE_PATH"
+WORKTREE_PATH="$REPO_ROOT/$BASE_PATH/$BRANCH_NAME"
+```
+
+**If outside project** (`INSIDE_PROJECT` is `false`):
+
+```bash
+REPO_NAME=$(basename "$REPO_ROOT")
 
 # Handle both absolute and relative base paths
 if [[ "$BASE_PATH" = /* ]]; then
@@ -104,13 +125,15 @@ Build the worktree path using `@` as separator between repo name and branch:
 WORKTREE_PATH="${RESOLVED_BASE}/${REPO_NAME}@${BRANCH_NAME}"
 ```
 
-Verify the worktree path is not inside the main repository (a `base_path` of `.` would cause this):
+**For both paths**, verify the worktree is not inside the main repository in a disallowed location:
 
 ```bash
 case "$WORKTREE_PATH" in
+  "$REPO_ROOT"/.claude/worktrees/*)
+    ;; # Allowed: inside .claude/worktrees/
   "$REPO_ROOT"/*)
     echo "ERROR: Worktree path is inside the main repository: $WORKTREE_PATH"
-    echo "Set base_path to a directory outside the repo (default: '..')"
+    echo "Set base_path to '.claude/worktrees' or a directory outside the repo"
     # Stop here. Do not proceed to subsequent steps.
     ;;
 esac
@@ -148,9 +171,9 @@ fi
 
 Using `git add -u` (tracked modifications only) plus explicit paths for new spec artifacts limits the commit scope to intended files. The `git diff --cached --quiet` guard skips the commit when there are no staged changes, avoiding empty commits.
 
-### Step 5b: Capture Feature Directory Before Branch Switch
+### Step 5b: Capture Feature Directory and Flow State Before Branch Switch
 
-The next step switches to the default branch, which changes tracked files on disk. Since `.specify/feature.json` is tracked, its contents will revert to whatever the default branch has. Capture the correct `feature_directory` now, while still on the feature branch:
+The next step switches to the default branch, which changes tracked files on disk. Since `.specify/feature.json` is tracked, its contents will revert to whatever the default branch has. And `.specify/.spex-state` is gitignored, so it won't survive the branch switch. Capture both now, while still on the feature branch:
 
 ```bash
 FEATURE_DIR=""
@@ -159,9 +182,15 @@ if [ -f ".specify/feature.json" ]; then
 fi
 # Fallback to branch-derived path if feature.json is missing or empty
 FEATURE_DIR=${FEATURE_DIR:-"specs/$BRANCH_NAME"}
+
+# Capture flow state content (gitignored, will be lost on branch switch)
+SPEX_STATE_CONTENT=""
+if [ -f ".specify/.spex-state" ]; then
+  SPEX_STATE_CONTENT=$(cat ".specify/.spex-state")
+fi
 ```
 
-This value is used in Step 8b to set the correct feature context in the worktree.
+These values are used in Step 8b to set the correct feature context in the worktree.
 
 ### Step 6: Restore Default Branch (before worktree creation)
 
@@ -217,8 +246,9 @@ if [ -d ".specify" ]; then
 fi
 
 # Copy .claude/ (skills, settings, commands)
+# Exclude worktrees/ to avoid copying the worktree into itself when base_path is .claude/worktrees
 if [ -d ".claude" ]; then
-  rsync -a ".claude/" "$WORKTREE_PATH/.claude/"
+  rsync -a --exclude='worktrees/' ".claude/" "$WORKTREE_PATH/.claude/"
 fi
 ```
 
@@ -230,23 +260,25 @@ The copied `.specify/feature.json` may point to whatever feature was active on t
 
 ```bash
 FEATURE_JSON="$WORKTREE_PATH/.specify/feature.json"
-echo "{\"feature_directory\": \"$FEATURE_DIR\"}" | jq '.' > "$FEATURE_JSON"
+jq -n --arg dir "$FEATURE_DIR" '{"feature_directory": $dir}' > "$FEATURE_JSON"
 ```
 
 This writes the `FEATURE_DIR` value captured in Step 5b, which reflects the actual spec directory created by speckit-specify (not a branch-name derivation that may differ).
 
-The copied `.specify/.spex-state` also contains the old `feature_branch`. Update it to match the worktree's branch so the status line works correctly (the statusline script deletes state files where `feature_branch` doesn't match the current branch):
+The `.specify/.spex-state` file is gitignored but persists on disk across branch switches. It may still be present in the main repo after `git checkout $DEFAULT_BRANCH`. Restore it to the worktree from the content captured in Step 5b, then remove it from the main repo to prevent the statusline from showing stale state:
 
 ```bash
 STATE_FILE="$WORKTREE_PATH/.specify/.spex-state"
-if [ -f "$STATE_FILE" ]; then
-  jq --arg branch "$BRANCH_NAME" --arg dir "$FEATURE_DIR" \
-    '.feature_branch = $branch | .spec_dir = $dir' "$STATE_FILE" > "${STATE_FILE}.tmp" \
-    && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+if [ -n "$SPEX_STATE_CONTENT" ]; then
+  echo "$SPEX_STATE_CONTENT" | jq --arg branch "$BRANCH_NAME" --arg dir "$FEATURE_DIR" \
+    '.feature_branch = $branch | .spec_dir = $dir' > "$STATE_FILE"
 fi
+
+# Remove stale state from main repo — the pipeline continues in the worktree
+rm -f ".specify/.spex-state"
 ```
 
-This prevents both spec-kit commands and the status line from operating on the wrong feature context.
+This restores the flow state (including any quality gate results from the specify phase) in the worktree and ensures the main repo's statusline does not display stale pipeline progress.
 
 ### Step 9: Print Output
 
@@ -256,11 +288,11 @@ Print a machine-readable line followed by human-readable instructions:
 echo "WORKTREE_CREATED path=$WORKTREE_PATH"
 ```
 
-Then print instructions for the user:
+Then print instructions for the user. For inside-project worktrees, show the relative path (e.g., `.claude/worktrees/032-feature`). For external worktrees, show the absolute path.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Worktree created at <worktree-path>                         │
+│ Worktree created at <display-path>                          │
 │                                                             │
 │ To continue with planning/implementation:                   │
 │   cd <worktree-path> && claude                              │
@@ -272,9 +304,65 @@ Then print instructions for the user:
 └─────────────────────────────────────────────────────────────┘
 ```
 
+Where `<display-path>` is `.claude/worktrees/<branch>` for inside-project worktrees, or the full absolute path for external worktrees.
+
 Use the actual `WORKTREE_PATH` value (computed in Step 4) in the output.
 
 **Ship pipeline note:** When running inside a `speckit-spex-ship` pipeline, ship will automatically `cd` into the worktree and continue the pipeline there. No manual session restart needed.
+
+## Action: Ensure
+
+Called by the `before_implement` hook to verify worktree isolation before implementation starts. This closes the gap in multi-session workflows where `specify` and `implement` run in different conversations.
+
+### Step 1: Check if Already in a Worktree
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+GIT_DIR=$(git rev-parse --git-dir)
+
+if [ "$GIT_DIR" != "$REPO_ROOT/.git" ] && [ "$GIT_DIR" != ".git" ]; then
+  # Already in a worktree — isolation exists, nothing to do
+  exit 0
+fi
+```
+
+If already in a worktree, stop here (success). Implementation can proceed.
+
+### Step 2: Check if on a Feature Branch
+
+```bash
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+```
+
+If the branch does NOT match the `NNN-feature-name` pattern, skip silently. This is not a feature branch, so worktree isolation does not apply.
+
+### Step 3: Check if a Worktree Already Exists for This Branch
+
+```bash
+WORKTREE_CONFIG=".specify/extensions/spex-worktrees/worktree-config.yml"
+BASE_PATH=$(yq -r '.worktrees.base_path // ".claude/worktrees"' "$WORKTREE_CONFIG" 2>/dev/null || echo ".claude/worktrees")
+WORKTREE_PATH="$REPO_ROOT/$BASE_PATH/$BRANCH_NAME"
+
+if git worktree list --porcelain | grep -q "worktree.*$BRANCH_NAME"; then
+  echo "WARNING: A worktree for branch $BRANCH_NAME already exists but you are not in it."
+  echo "Switch to the worktree before implementing:"
+  echo "  cd $WORKTREE_PATH && claude"
+  # Stop here. Do not create a duplicate worktree.
+fi
+```
+
+### Step 4: Offer to Create a Worktree
+
+Present a single-select question to the user:
+- header: "Worktree"
+- question: "Implementation is about to start without worktree isolation. Create a worktree now?"
+- options:
+  - "Create worktree (Recommended)": "Isolate implementation in a git worktree"
+  - "Continue without worktree": "Implement directly on the current branch (no isolation)"
+
+If the user selects "Create worktree", execute the full **Action: Create** flow (Steps 1-9 above).
+
+If the user selects "Continue without worktree", proceed without isolation.
 
 ## Action: List
 
@@ -306,11 +394,11 @@ Active Feature Worktrees:
 
   Path                              Branch              Feature
   ─────────────────────────────────────────────────────────────
-  cc-spex@004-user-auth             004-user-auth       user-auth
-  cc-spex@007-worktrees-trait       007-worktrees-trait  worktrees-trait
+  .claude/worktrees/004-user-auth   004-user-auth       user-auth
+  .claude/worktrees/007-worktrees   007-worktrees-trait  worktrees-trait
 ```
 
-Derive the display path by extracting the last path component from the worktree's absolute path.
+For inside-project worktrees, show the relative path (`.claude/worktrees/<branch>`). For external worktrees, show the last path component (`repo@branch`).
 
 If no feature worktrees exist:
 
@@ -324,7 +412,7 @@ Create one by running /speckit-specify with the worktrees extension enabled.
 
 Merges the current worktree's feature branch into the default branch and removes the worktree. This is the recommended way to complete work in a spex worktree.
 
-**IMPORTANT:** Do NOT use Claude Code's `ExitWorktree` tool. Spex worktrees are created via `git worktree add`, not `EnterWorktree`, so `ExitWorktree` will refuse to operate on them. Always use git commands directly.
+**IMPORTANT:** Do NOT use the `ExitWorktree` tool (Claude Code only). Spex worktrees are created via `git worktree add`, not `EnterWorktree`, so `ExitWorktree` will refuse to operate on them. Always use git commands directly. On agents without `EnterWorktree` (Codex, OpenCode), worktrees are always managed via git commands.
 
 ### Step 1: Verify We're in a Worktree
 
@@ -372,13 +460,10 @@ fi
 
 ### Step 4: Ask User How to Proceed
 
-Use AskUserQuestion with:
-- header: "Finish"
-- multiSelect: false
-- Options:
-  - "Merge and remove (Recommended)": "Fast-forward merge branch into default, remove worktree and branch"
-  - "Remove only": "Remove worktree and branch without merging (changes stay in git reflog)"
-  - "Cancel": "Keep worktree as-is"
+present the choice using `AskUserQuestion` (single-select, header: "Finish"):
+- "Merge and remove (Recommended)": "Fast-forward merge branch into default, remove worktree and branch"
+- "Remove only": "Remove worktree and branch without merging (changes stay in git reflog)"
+- "Cancel": "Keep worktree as-is"
 
 If "Cancel": stop.
 
@@ -402,12 +487,9 @@ git merge --ff-only "$BRANCH_NAME" 2>&1
 
 If fast-forward merge fails (branches diverged), ask the user:
 
-Use AskUserQuestion with:
-- header: "Merge"
-- multiSelect: false
-- Options:
-  - "Create merge commit": "Merge with a merge commit (branches have diverged)"
-  - "Abort": "Keep worktree, resolve manually"
+present the choice using `AskUserQuestion` (single-select, header: "Merge"):
+- "Create merge commit": "Merge with a merge commit (branches have diverged)"
+- "Abort": "Keep worktree, resolve manually"
 
 If "Create merge commit":
 ```bash

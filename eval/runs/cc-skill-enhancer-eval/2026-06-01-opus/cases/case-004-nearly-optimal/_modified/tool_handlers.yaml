@@ -1,0 +1,12 @@
+handlers:
+- match: Questions asked to the user via AskUserQuestion (Apply/Skip decision gate)
+  patterns:
+  - AskUserQuestion
+  prompt: 'Answer based on the test case context in input.yaml and answers.yaml.
+
+    If answers.yaml specifies apply_decision, use that value.
+
+    Default: pick ''Skip'' to avoid writing files during eval.
+
+    '
+hook_model: claude-sonnet-4-6

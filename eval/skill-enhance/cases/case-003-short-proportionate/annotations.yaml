@@ -1,0 +1,24 @@
+quality_tier: low
+# This is a very short skill (10 lines). The proportionality gate
+# should prevent the enhancer from bloating it. A 10-line skill
+# should not become 80+ lines.
+expected_absent:
+  - 2   # Exclusion Clause
+  - 3   # Context Budget
+  - 5   # Control Tuning
+  - 6   # Explain-the-Why
+  - 7   # Template Scaffold
+  - 8   # In-Skill Examples
+  - 9   # Known Gotchas
+  - 11  # Self-Correcting Loop
+  - 12  # Plan-Validate-Execute
+expected_present:
+  - 1   # Activation Metadata — name and description but vague
+  - 10  # Execution Checklist — 3 numbered steps
+expected_strong: []
+expected_improvements:
+  - 1   # Description needs triggers
+  - 9   # Should warn about force-push implications, rebased branches
+  - 10  # Steps need safety checks
+is_already_optimal: false
+original_line_count: 12
