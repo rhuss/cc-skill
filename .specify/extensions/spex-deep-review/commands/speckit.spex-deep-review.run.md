@@ -18,7 +18,7 @@ The caller (review-code or ship) may provide these values. When not provided, th
 1. **Stage 1 result**: spec compliance score (or null if no spec)
 2. **Invocation context**: `superpowers` or `manual`
 3. **Hint text**: optional focus area from user (or null)
-4. **External tool settings**: `{coderabbit: true/false, copilot: true/false}` (see resolution below)
+4. **External tool settings**: `{coderabbit: true/false, copilot: true/false, codex: true/false}` (see resolution below)
 5. **Spec path**: path to spec.md (or null, see Spec Resolution below)
 6. **Feature directory**: path to the spec directory for artifact output
 
@@ -43,15 +43,18 @@ DEFAULT_CODERABBIT=$(yq -r '.external_tools.coderabbit // true' "$DEEP_REVIEW_CO
 DEFAULT_CODERABBIT=${DEFAULT_CODERABBIT:-true}
 DEFAULT_COPILOT=$(yq -r '.external_tools.copilot // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
 DEFAULT_COPILOT=${DEFAULT_COPILOT:-true}
+DEFAULT_CODEX=$(yq -r '.external_tools.codex // true' "$DEEP_REVIEW_CONFIG" 2>/dev/null)
+DEFAULT_CODEX=${DEFAULT_CODEX:-true}
 ```
 
 ```
 Resolution:
   coderabbit = DEFAULT_CODERABBIT
   copilot    = DEFAULT_COPILOT
+  codex      = DEFAULT_CODEX
 ```
 
-This ensures CodeRabbit and Copilot are enabled by default regardless of how deep-review is invoked.
+This ensures CodeRabbit, Copilot, and Codex are enabled by default regardless of how deep-review is invoked.
 
 ### Test Suite Configuration
 
@@ -105,14 +108,16 @@ which coderabbit >/dev/null 2>&1 && echo "CODERABBIT_AVAILABLE=true"
 # GitHub Copilot CLI (skip if copilot setting is false)
 which copilot >/dev/null 2>&1 && echo "COPILOT_AVAILABLE=true"
 
+Include Codex external tool detection and dispatch
 ```
 
 **External tool resolution:**
 1. Use the external tool settings from Prerequisites (either caller-provided or self-resolved from config)
 2. **CodeRabbit is enabled by default.** Only skip if the config explicitly sets `coderabbit: false`
 3. If `copilot` is `false`, skip Copilot detection entirely
-4. If a tool is enabled in settings but not installed, proceed silently without it
-5. **When CodeRabbit is available and enabled, it MUST be invoked.** Do not skip it for performance or convenience reasons. CodeRabbit provides external validation that complements the internal review agents.
+4. If `codex` is `false`, skip Codex detection entirely
+5. If a tool is enabled in settings but not installed, proceed silently without it
+6. **When CodeRabbit is available and enabled, it MUST be invoked.** Do not skip it for performance or convenience reasons. CodeRabbit provides external validation that complements the internal review agents.
 
 **Test command auto-detection:**
 
@@ -241,6 +246,8 @@ Parse output:
 2. For each block: extract Severity, File, Line, Description fields
 3. **Discard findings for files under `specs/`** (spec artifacts are not code to review)
 4. Set category = "external", source_agent = "copilot", confidence = 75
+
+Include Codex external tool detection and dispatch
 
 **Error handling for external tools:**
 If a tool times out, crashes, or returns an error:
@@ -572,6 +579,7 @@ Review Agents:
 | Test Quality            |     N |     N |         N | completed |
 | CodeRabbit (external)   |     N |     N |         N | completed/skipped/failed |
 | Copilot (external)      |     N |     N |         N | completed/skipped/failed |
+| Codex (external)        |     N |     N |         N | completed/skipped/failed |
 | Test Suite (regression) |     N |     N |         N | passed/N failures/skipped |
 |-------------------------|-------|-------|-----------|-----------|
 | Total                   |     N |     N |         N |           |
@@ -1149,6 +1157,7 @@ Stage 2: Multi-perspective review (N changed files)
   Agent 5/5: Test Quality... done, N findings
   [CodeRabbit... done, N findings] (if available)
   [Copilot... done, N findings] (if available)
+  [Codex... done, N findings] (if available)
 
 Merging findings: N total, N after dedup (N Critical, N Important, N Minor)
 [Fix round 1/3: addressing N Critical + N Important findings...]

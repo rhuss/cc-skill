@@ -43,7 +43,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:12.882973+00:00"
+      "installed_at": "2026-07-15T04:57:35.061298+00:00"
     },
     "spex-gates": {
       "version": "1.0.0",
@@ -61,7 +61,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:13.146133+00:00"
+      "installed_at": "2026-07-15T04:57:35.340779+00:00"
     },
     "spex-worktrees": {
       "version": "1.0.0",
@@ -75,7 +75,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:13.403337+00:00"
+      "installed_at": "2026-07-15T04:57:35.595524+00:00"
     },
     "spex-deep-review": {
       "version": "1.0.0",
@@ -89,7 +89,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:13.657353+00:00"
+      "installed_at": "2026-07-15T04:57:35.859569+00:00"
     },
     "spex-teams": {
       "version": "1.0.0",
@@ -105,7 +105,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:13.900232+00:00"
+      "installed_at": "2026-07-15T04:57:36.120967+00:00"
     },
     "spex-collab": {
       "version": "1.0.0",
@@ -124,7 +124,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:14.163362+00:00"
+      "installed_at": "2026-07-15T04:57:36.370971+00:00"
     },
     "spex-detach": {
       "version": "1.0.0",
@@ -138,7 +138,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-07-14T04:49:14.421010+00:00"
+      "installed_at": "2026-07-15T04:57:36.636181+00:00"
     }
   }
 }
