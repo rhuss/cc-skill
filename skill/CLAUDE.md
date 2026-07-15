@@ -9,7 +9,7 @@ All skills in this plugin use the `skill:` prefix:
 
 ## Knowledge Loading
 
-Skills load pattern definitions from `${CLAUDE_PLUGIN_ROOT}/knowledge/skill-authoring-patterns.md`. This file contains the 14 skill-authoring patterns with detection signals, quality criteria, and improvement guidance.
+Skills load pattern definitions from `${CLAUDE_PLUGIN_ROOT}/knowledge/skill-authoring-patterns.md`. This file contains the 17 skill-authoring patterns with detection signals, quality criteria, and improvement guidance.
 
 If the knowledge file is unavailable, skills should report the error clearly and halt.
 

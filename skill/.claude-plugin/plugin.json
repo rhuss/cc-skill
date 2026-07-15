@@ -1,7 +1,7 @@
 {
   "name": "skill",
-  "version": "1.1.0",
-  "description": "Evaluate, enhance, and measure Claude Code SKILL.md files against 14 skill-authoring patterns",
+  "version": "1.2.0",
+  "description": "Evaluate, enhance, and measure Claude Code SKILL.md files against 17 skill-authoring patterns",
   "author": {
     "name": "Roland Huß",
     "email": "rhuss@redhat.com"
