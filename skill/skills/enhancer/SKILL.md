@@ -257,9 +257,7 @@ Record any new files created as `NEW_FILES` (list of filename and purpose pairs)
 
 Check if prompt plugin skills are available in the current session. Look for any available skill with a `prompt:` prefix that enhances SKILL.md files (e.g., `prompt:skill-enhancer`). The prompt plugin skill name may vary across installations, so match by prefix and purpose rather than exact name.
 
-**If prompt plugin skills are available**: Invoke the prompt plugin against the enhanced SKILL.md. The prompt plugin checks a different set of patterns (prompt design patterns) that complement the skill-authoring patterns handled here. These are independent analyses; one does not substitute for the other.
-
-Do not skip this step because you judge the skill-authoring improvements to be "sufficient." The decision about whether prompt-pattern improvements add value belongs to the user at the Apply/Skip gate, not to you during enhancement.
+**If prompt plugin skills are available**: Note the availability for the post-apply offer in Step 9d. Do NOT invoke the prompt plugin here and do NOT ask the user about it here. The prompt plugin offer is presented as a separate question AFTER the apply/skip decision. Combining two questions into one message creates a confusing interaction.
 
 **If prompt plugin skills are not available**: Continue to Step 9. Do not print errors, warnings, or any mention of the missing plugin. The enhancer works standalone using skill-authoring patterns when the prompt plugin is not installed.
 
@@ -280,7 +278,7 @@ Before presenting results, list which steps were executed and which were skipped
 - Step 5: Enhancement Targeting — completed, N targets selected
 - Step 6: Rewrite — completed
 - Step 7: File Splitting — skipped (under 500 lines) | completed (N files)
-- Step 8: Prompt Plugin Delegation — invoked prompt:skill-enhancer | skipped (plugin not available)
+- Step 8: Prompt Plugin Delegation — detected (offered after apply/skip) | skipped (plugin not available)
 - Step 9: Changelog — in progress
 ```
 
@@ -353,6 +351,22 @@ After showing the output, present the user with a choice:
 
 **If the user selects Skip**:
 - Confirm: "Original skill left unchanged at `<SKILL_PATH>`."
+
+#### 9e: Prompt Plugin Follow-Up (Separate Question)
+
+Only after the apply/skip decision is resolved, if prompt plugin skills were detected in Step 8:
+
+Present a **separate** question (not combined with any other prompt):
+
+```
+The `prompt:skill-enhancer` plugin is available to check prompt-design patterns (a different dimension from skill-authoring patterns). Want me to run it?
+```
+
+If yes: invoke the prompt plugin against the SKILL.md (the enhanced version if Apply was selected, the original if Skip was selected).
+
+If no: end the session.
+
+**One question at a time.** Never combine the prompt plugin offer with the apply/skip choice or any other question.
 
 ## Error Handling
 
