@@ -1,3 +1,4 @@
+invocation_type: explicit
 quality_tier: medium
 # This case tests the subtle distinction between "present" and "strong" ratings.
 # Many patterns exist here but in a weak or incomplete form.

@@ -1,3 +1,4 @@
+invocation_type: explicit
 quality_tier: medium
 expected_absent:
   - 2   # Exclusion Clause — no exclusions

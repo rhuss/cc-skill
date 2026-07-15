@@ -1,3 +1,4 @@
+invocation_type: explicit
 quality_tier: low
 # This is a very short skill (10 lines). The proportionality gate
 # should prevent the enhancer from bloating it. A 10-line skill
