@@ -1,3 +1,4 @@
+invocation_type: explicit
 quality_tier: medium
 expected_strong:
   - 1   # Activation Metadata — good name, description with triggers and exclusions, argument-hint
