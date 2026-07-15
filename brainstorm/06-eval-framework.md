@@ -134,3 +134,65 @@ The key insight from Bilgin's article: "Scenario quality, repeated runs, and tar
 - Should the four goal categories be configurable per skill, or is a fixed set correct? Different skills may weight goals differently (a read-only checker cares less about "efficiency" than an enhancer that rewrites files).
 - How to handle the "negative control" eval type? The current eval harness runs skills and scores output. A negative control expects the skill to NOT run, which is a different kind of assertion.
 - Should `compare-runs.sh` output the structured JSON schema in addition to the markdown report for programmatic consumption?
+
+---
+
+## Revisit: 2026-07-15
+
+### Context
+
+The four open questions needed resolution before creating a spec. The three-layer linting (brainstorm #05) shipped as PR #1 with 17 patterns, and targeted eval dataset generation (#04) is implemented in `skill:measure`. This revisit focuses on making the eval framework spec-ready.
+
+### Resolved Open Questions
+
+**Q1: How much requires harness changes vs. plugin changes?**
+
+**Decision: Plugin-only first.** The current eval harness already supports deterministic judges (Python `check:` blocks) and model-assisted judges (`prompt:` blocks), which maps to the two-layer scoring concept. Structured rubric enforcement and per-goal aggregation in `summary.yaml` would need harness changes, but we can achieve the four-goal-category structure through judge naming conventions and an updated `compare-runs.sh` without touching the harness.
+
+**Q2: Should the four goal categories be configurable per skill?**
+
+**Decision: Fixed set, all four always present.** Every eval includes Outcome, Process, Style, and Efficiency judges. Some skills may have thin judges for less-relevant goals (e.g., `skill:check` has a lightweight Efficiency judge since it's read-only), but the structure is uniform across all skills. This makes cross-skill comparison straightforward.
+
+**Q3: How to handle the negative control eval type?**
+
+**Decision: Defer to `skill:describe` (brainstorm #07).** The current eval harness explicitly invokes skills (`execution.arguments: "{skill_path}"`), so there's no routing decision to test negatively. Negative controls test activation behavior, which is the domain of `skill:describe`. The eval framework focuses on the three positive invocation types: explicit, implicit, and contextual.
+
+**Q4: Should `compare-runs.sh` output structured JSON?**
+
+**Decision: Yes, add `comparison.json`.** Emit a machine-readable JSON file alongside `comparison.md` for programmatic consumption (dashboards, trend tracking, CI gates).
+
+### Updated Approach
+
+**Chosen: Reorganize judges by goal category (incremental).**
+
+Rather than rewriting all judges as composite rubric judges (too large), restructure the existing judges into the four-goal model by renaming with goal-category prefixes and adding judges to fill coverage gaps.
+
+**What changes:**
+- Rename existing judges with goal-category prefixes (`outcome_`, `process_`, `style_`, `efficiency_`)
+- Add new judges to ensure all four categories are covered for `skill:check` and `skill:enhance` evals
+- Add `invocation_type` (explicit/implicit/contextual) to `annotations.yaml` schema
+- Generate eval cases across the three positive invocation types
+- Update `compare-runs.sh` to group by goal category and report per-category deltas
+- Add `comparison.json` output alongside `comparison.md`
+
+**What stays the same:**
+- Individual judges (not composite rubrics)
+- Eval harness schema
+- `skill:measure` orchestration (consumes updated comparison output)
+
+### Updated Scope
+
+**In scope:**
+- Judge reorganization with goal-category prefixes
+- New judges for coverage gaps (all four goals per skill)
+- Typed invocation annotations in eval cases
+- `compare-runs.sh` goal-category grouping and JSON output
+
+**Out of scope:**
+- Negative control eval cases (deferred to #07 `skill:describe`)
+- Harness schema changes
+- Composite rubric judges
+- `skill:measure` changes beyond consuming updated comparison output
+
+### Remaining Open Questions
+(none, ready for spec)

@@ -38,6 +38,8 @@ dataset:
       - 'expected_improvements' (list of pattern numbers that should improve after enhancement)
       - 'is_already_optimal' (boolean — true if all applicable patterns are already strong)
       - 'original_line_count' (integer — approximate line count of input SKILL.md)
+      - 'invocation_type' (string — 'explicit', 'implicit', or 'contextual';
+        defaults to 'explicit' if omitted)
     - answers.yaml: Guidance for the AskUserQuestion hook (the skill asks
       Apply/Skip at the end). Should contain:
       - 'apply_decision': 'Apply' or 'Skip' (whether to write the enhanced file)
@@ -81,12 +83,12 @@ traces:
   metrics: true
 
 judges:
-  - name: budget_check
+  - name: efficiency_budget
     builtin: cost_budget
     arguments:
       max_cost_usd: 5.0
 
-  - name: output_completeness
+  - name: outcome_output_completeness
     description: |
       Verify the output includes all required sections: steps executed log,
       enhanced skill (or optimal assessment), changelog, and status changes.
@@ -110,9 +112,9 @@ judges:
           return (False, "; ".join(issues))
       return (True, "All required sections present" + (" (optimal path)" if is_optimal else ""))
 
-  - name: pattern_evaluation
+  - name: outcome_pattern_evaluation
     description: |
-      Verify that all 14 patterns are mentioned in the baseline evaluation
+      Verify that all 17 patterns are mentioned in the baseline evaluation
       and that status values are valid (strong/present/absent/N/A).
     check: |
       import re
@@ -120,15 +122,17 @@ judges:
       if not text:
           return (False, "No conversation output")
       valid = {"strong", "present", "absent", "n/a"}
-      statuses = re.findall(r'\|\s*\d+\s*\|[^|]+\|[^|]+\|\s*(\w[\w/]*)\s*\|', text)
-      if not statuses:
-          statuses = re.findall(r'(?:strong|present|absent|N/A)', text, re.IGNORECASE)
-      status_count = sum(1 for s in statuses if s.lower() in valid)
-      if status_count < 14:
-          return (False, f"Only {status_count} valid pattern statuses found (expected 14)")
-      return (True, f"{status_count} pattern statuses found")
+      pattern_ids = set()
+      for m in re.finditer(r'\|\s*(\d+)\s*\|[^|]+\|[^|]+\|\s*(\w[\w/]*)\s*\|', text):
+          pid, status = m.group(1), m.group(2)
+          if status.lower() in valid:
+              pattern_ids.add(int(pid))
+      if len(pattern_ids) < 17:
+          missing = set(range(1, 18)) - pattern_ids
+          return (False, f"Only {len(pattern_ids)} distinct pattern IDs found (expected 17), missing: {sorted(missing)}")
+      return (True, f"{len(pattern_ids)} distinct pattern IDs validated")
 
-  - name: frontmatter_preserved
+  - name: outcome_frontmatter_preserved
     description: |
       Verify the enhanced SKILL.md text preserves the original frontmatter
       fields (name, description) in the rewrite.
@@ -154,7 +158,7 @@ judges:
           return (False, "Enhanced skill missing 'description' field")
       return (True, "Frontmatter preserved with name and description")
 
-  - name: changelog_specificity
+  - name: style_changelog_specificity
     description: |
       Evaluate whether each What Changed entry references specific skill content
       and provides domain-specific reasoning rather than generic pattern descriptions.
@@ -181,7 +185,7 @@ judges:
       Score 4: Nearly all entries are specific and domain-aware
       Score 5: All entries reference specific skill content with clear reasoning
 
-  - name: proportionality
+  - name: style_proportionality
     description: |
       Evaluate whether the enhanced skill is proportional to the original.
       Short skills should not be over-engineered; growth must be justified
@@ -218,7 +222,7 @@ judges:
       Score 4: Growth ratio 1.2-1.5x, well-justified by patterns applied
       Score 5: Growth ratio under 1.2x or already optimal
 
-  - name: intent_preservation
+  - name: outcome_intent_preservation
     description: |
       Verify the enhanced skill still performs the same task and has not
       drifted in purpose, scope, or behavior.
@@ -244,18 +248,36 @@ judges:
       Score 4: Same purpose with minor clarifications and improvements
       Score 5: Functionally identical, only structure and clarity improved
 
+  - name: process_step_execution
+    description: |
+      Verify the conversation output contains a "Steps Executed" section
+      that lists the steps the enhancer performed.
+    check: |
+      import re
+      text = outputs.get("conversation", "")
+      if not text:
+          return (False, "No conversation output")
+      if not re.search(r'[Ss]teps?\s+[Ee]xecuted', text):
+          return (False, "Missing Steps Executed section")
+      step_refs = re.findall(r'[Ss]tep\s+\d+', text)
+      if len(step_refs) < 2:
+          return (False, f"Steps Executed section found but only {len(step_refs)} step references detected")
+      return (True, f"Steps Executed section present with {len(step_refs)} step references")
+
 thresholds:
-  budget_check:
+  efficiency_budget:
     min_pass_rate: 1.0
-  output_completeness:
+  outcome_output_completeness:
     min_pass_rate: 1.0
-  pattern_evaluation:
+  outcome_pattern_evaluation:
     min_pass_rate: 1.0
-  frontmatter_preserved:
+  outcome_frontmatter_preserved:
     min_pass_rate: 1.0
-  changelog_specificity:
+  process_step_execution:
+    min_pass_rate: 1.0
+  style_changelog_specificity:
     min_mean: 3.5
-  proportionality:
+  style_proportionality:
     min_mean: 3.5
-  intent_preservation:
+  outcome_intent_preservation:
     min_mean: 4.0

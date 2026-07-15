@@ -270,7 +270,7 @@ Run the comparison script via Bash. Use absolute paths for both run directories 
 ${CLAUDE_PLUGIN_ROOT}/scripts/compare-runs.sh "BASELINE_RUN_DIR" "ENHANCED_RUN_DIR"
 ```
 
-The script prints a terminal table to stdout and saves a detailed markdown report to `ENHANCED_RUN_DIR/comparison.md`.
+The script prints a terminal table (grouped by goal category: Outcome, Process, Style, Efficiency) to stdout, saves a detailed markdown report to `ENHANCED_RUN_DIR/comparison.md`, and emits structured data to `ENHANCED_RUN_DIR/comparison.json`.
 
 Present the comparison output to the user. If the report shows regressions, highlight them. Regressions do not necessarily mean the enhancement was bad: some judges may score lower because the enhanced skill changed structure (e.g., reordering sections) even when the content improved.
 
@@ -289,6 +289,7 @@ After the comparison, present a final summary:
 **Baseline run**: `BASELINE_RUN_DIR`
 **Enhanced run**: `ENHANCED_RUN_DIR`
 **Comparison report**: `ENHANCED_RUN_DIR/comparison.md`
+**Comparison data**: `ENHANCED_RUN_DIR/comparison.json`
 **Targeted cases**: N generated for [pattern list]
 
 [Summary line from compare-runs.sh output: N improved, N regressed, N unchanged]

@@ -32,5 +32,5 @@ Validate skills by running them against real SKILL.md files:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/005-three-layer-linting/plan.md`
+at `specs/006-eval-goal-categories/plan.md`
 <!-- SPECKIT END -->
