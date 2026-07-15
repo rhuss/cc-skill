@@ -75,7 +75,7 @@ The measure loop cannot continue without baseline scores.
 
 ### Step 4: Enhance the Skill
 
-Invoke `/skill:enhance SKILL_PATH` to improve the skill against the 14 authoring patterns.
+Invoke `/skill:enhance SKILL_PATH` to improve the skill against the 17 authoring patterns.
 
 Watch for the "already optimal" signal. If skill:enhance reports that all applicable patterns are already strong and no changes were made:
 
