@@ -1,6 +1,6 @@
 ---
 name: "skill:enhance"
-description: "Improve a SKILL.md file by applying missing or weak skill-authoring patterns. Use when a skill needs strengthening, after running skill:check to identify gaps, or when creating a new skill from scratch. Do NOT use for prompt-level improvements (use prompt:enhance instead) or for evaluation only (use skill:check instead)."
+description: "Improve a SKILL.md file by applying missing or weak skill-authoring patterns (17 patterns across 7 categories). Use when a skill needs strengthening, after running skill:check to identify gaps, or when creating a new skill from scratch. Do NOT use for prompt-level improvements (use prompt:enhance instead) or for evaluation only (use skill:check instead)."
 argument-hint: "[path/to/SKILL.md]"
 user-invocable: true
 ---
@@ -9,7 +9,7 @@ user-invocable: true
 
 ## Overview
 
-This skill takes a Claude Code SKILL.md file, evaluates it against 14 skill-authoring patterns from 5 categories, and produces a rewritten version that addresses missing or weak patterns. The output includes the enhanced skill text, a changelog table explaining each pattern applied, a before/after status table, and an apply/skip choice for the user.
+This skill takes a Claude Code SKILL.md file, evaluates it against 17 skill-authoring patterns from 7 categories, and produces a rewritten version that addresses missing or weak patterns. The output includes the enhanced skill text, a changelog table explaining each pattern applied, a before/after status table, and an apply/skip choice for the user.
 
 The enhancer preserves the original skill's intent, voice, and structure. Enhancement is proportionate to the skill's complexity (a 50-line skill should not become 400 lines).
 
@@ -44,7 +44,7 @@ Read the skill-authoring patterns knowledge file using the Read tool:
 
 - `${CLAUDE_PLUGIN_ROOT}/knowledge/skill-authoring-patterns.md`
 
-This file defines all 14 patterns with detection signals, quality criteria, and improvement guidance. It is the single reference for pattern evaluation and enhancement decisions.
+This file defines all 17 patterns with detection signals, quality criteria, and improvement guidance. It is the single reference for pattern evaluation and enhancement decisions.
 
 **Error condition**: If the knowledge file cannot be loaded, return:
 
@@ -56,7 +56,7 @@ Stop. Do not attempt enhancement without the knowledge file.
 
 ### Step 3: Baseline Evaluation
 
-Evaluate `SKILL_CONTENT` against all 14 patterns from the knowledge file. This establishes the current state before enhancement.
+Evaluate `SKILL_CONTENT` against all 17 patterns from the knowledge file. This establishes the current state before enhancement.
 
 For each pattern, assign one of four statuses:
 
@@ -92,6 +92,11 @@ Evaluate patterns in order by category:
 
 **Meta** (pattern 14):
 14. Autonomy Calibration
+
+**Workflow Quality** (patterns 15-17):
+15. Process over Prose
+16. Anticipate the Excuse (conditional: only applicable if skill has non-negotiable rules or hard constraints)
+17. Stay in Scope (conditional: only applicable if skill modifies files or system state)
 
 Record the status list as `BASELINE_STATUS`. Count applicable patterns (excluding N/A) as `APPLICABLE_COUNT`. Count strong patterns as `STRONG_COUNT`.
 
@@ -159,7 +164,7 @@ A second pitfall is over-enhancing simple skills. A 50-line skill that becomes 2
 **Example**: Here is a before/after for applying the Known Gotchas pattern to a skill that validates YAML files:
 
 Before (absent):
-```
+```markdown
 ### Step 3: Validate Structure
 Check that all required fields are present in the YAML file.
 ```
@@ -173,6 +178,61 @@ A common mistake is checking only top-level keys while ignoring nested required 
 ```
 
 The gotcha is placed at the instruction where the mistake would happen, names what goes wrong (checking only top-level), and says how to avoid it (validate at every nesting level).
+
+**Enhancement strategies for patterns 15-17**:
+
+**Process over Prose (Pattern 15)**: When the skill has descriptive prose that explains concepts without directing action, restructure those sections into numbered workflow steps with imperative verbs. Each step should have a clear action and, where applicable, an entry condition ("Before this step, verify...") and exit condition ("This step is done when..."). Preserve the original explanatory content as brief context before or within the action steps, but ensure every paragraph ends with or contains a directed action.
+
+Before (absent):
+```markdown
+The skill analyzes error logs by examining patterns. Different log formats
+require different parsing approaches. JSON logs can be processed directly
+while plain text logs need regex matching.
+```
+
+After (present):
+```markdown
+### Step N: Parse Error Logs
+
+1. Detect the log format by reading the first 5 lines. If lines are valid JSON, use JSON parsing. If not, use regex matching.
+2. For JSON logs: extract the `level`, `message`, and `timestamp` fields from each entry.
+3. For plain text logs: apply the regex patterns from the `patterns/` directory to extract structured fields.
+4. Collect all entries with level "ERROR" or "FATAL" into the analysis set.
+```
+
+**Anticipate the Excuse (Pattern 16)**: When the skill has MUST or NEVER rules without pre-answered objections, identify each hard rule and generate a rebuttal table listing 2-3 likely rationalizations the LLM might use to skip the rule, along with explicit counters. Place the rebuttal immediately after the rule it defends.
+
+Before (absent):
+```markdown
+You MUST run the test suite before committing. Never skip tests.
+```
+
+After (present):
+```markdown
+You MUST run the test suite before committing. Never skip tests.
+
+| You might think... | But actually... |
+|---|---|
+| "The change is too small to break anything" | Small changes cause the majority of production incidents. A one-line typo in a config file took down the service for 2 hours last quarter. |
+| "Tests are slow and I already checked manually" | Manual verification misses regression paths. The test suite covers 47 edge cases you will not check by hand. |
+| "Tests are failing for an unrelated reason" | Keep the failure visible and fix the root cause before committing. Do not skip the failing test or the suite. |
+```
+
+**Stay in Scope (Pattern 17)**: When the skill modifies files or system state but lacks explicit scope boundaries, add a scope-bounding section with both positive constraints (what to touch) and negative constraints (what not to touch), each with rationale.
+
+Before (absent):
+```markdown
+### Step 3: Apply Changes
+Update the configuration files based on the analysis results.
+```
+
+After (present):
+```markdown
+### Step 3: Apply Changes
+Update the configuration files based on the analysis results.
+
+**Scope**: Only modify files under `config/` in the project root. Do NOT modify files outside this directory, especially `package.json` (managed by npm) or `.env` files (contain secrets that must be edited manually). The config directory constraint exists because other directories have their own update workflows that this skill would conflict with.
+```
 
 ### Step 7: File Splitting (Progressive Disclosure)
 
@@ -228,7 +288,7 @@ Every step must appear. For skipped steps, state the reason. This log forces exp
 
 #### 9b: Re-evaluate the Enhanced Skill
 
-Run the same 14-pattern evaluation from Step 3 against the enhanced skill text. Record results as `ENHANCED_STATUS`.
+Run the same 17-pattern evaluation from Step 3 against the enhanced skill text. Record results as `ENHANCED_STATUS`.
 
 Verify that the enhanced skill improved over the baseline. If `ENHANCED_STATUS` shows no improvement (same number or fewer "strong" patterns), revisit Step 6 and strengthen the rewrite. Retry at most once. If the second attempt still shows no improvement, present the best version and note in the summary that improvement was limited.
 
