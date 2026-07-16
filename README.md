@@ -1,8 +1,8 @@
 # cc-skill
 
-A Claude Code plugin for evaluating, enhancing, and measuring SKILL.md files against 14 skill-authoring patterns.
+A Claude Code plugin for evaluating, enhancing, and measuring SKILL.md files against 17 skill-authoring patterns.
 
-Built on ideas from Bilgin Ibryam's ["9 Principles That Separate Useful Skills from Markdown Essays"](https://www.generativeprogrammer.com/p/9-principles-that-separate-useful) and Anthropic's ["Demystifying Evals for AI Agents"](https://www.anthropic.com/engineering/evaluating-ai-agents).
+Built on ideas from Bilgin Ibryam's ["9 Principles That Separate Useful Skills from Markdown Essays"](https://generativeprogrammer.com/p/9-principles-that-separate-useful) and Anthropic's ["Demystifying Evals for AI Agents"](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents).
 
 ## What You Get
 
@@ -46,7 +46,7 @@ Three commands:
 
 Register the `skill/` directory as a plugin in your Claude Code settings.
 
-If you also have the [prompt plugin](https://github.com/anthropics/cc-prompt) installed, both check and enhance pick it up at runtime for deeper prompt-pattern analysis. Without it, everything works fine on its own.
+If you also have the [prompt plugin](https://github.com/rhuss/cc-prompt) installed, both check and enhance pick it up at runtime for deeper prompt-pattern analysis. Without it, everything works fine on its own.
 
 ## Usage
 
@@ -64,7 +64,7 @@ If you also have the [prompt plugin](https://github.com/anthropics/cc-prompt) in
 skill/scripts/compare-runs.sh <baseline-run-dir> <enhanced-run-dir>
 ```
 
-## The 14 Patterns
+## The 17 Patterns
 
 | Category | Patterns |
 |----------|----------|
@@ -74,6 +74,7 @@ skill/scripts/compare-runs.sh <baseline-run-dir> <enhanced-run-dir>
 | Workflow Control | Execution Checklist, Self-Correcting Loop, Plan-Validate-Execute |
 | Executable Code | Utility Bundle |
 | Meta | Autonomy Calibration |
+| Workflow Quality | Process over Prose, Anticipate the Excuse, Stay in Scope |
 
 Each pattern gets one of four statuses:
 
@@ -196,5 +197,5 @@ Start with structural completeness for fast feedback. Add behavioral quality jud
 ## Credits
 
 - [Bilgin Ibryam](https://www.generativeprogrammer.com/) for the 9 skill design principles that informed the pattern framework
-- [Anthropic](https://www.anthropic.com/engineering/evaluating-ai-agents) for evaluation methodology guidance
+- [Anthropic](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) for evaluation methodology guidance
 - [agent-eval-harness](https://github.com/opendatahub-io/agent-eval-harness) for the evaluation infrastructure that powers `/skill:measure`
