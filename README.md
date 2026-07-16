@@ -196,6 +196,6 @@ Start with structural completeness for fast feedback. Add behavioral quality jud
 
 ## Credits
 
-- [Bilgin Ibryam](https://www.generativeprogrammer.com/) for the 9 skill design principles that informed the pattern framework
+- [Bilgin Ibryam](https://generativeprogrammer.com/) for the 9 skill design principles that informed the pattern framework
 - [Anthropic](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) for evaluation methodology guidance
 - [agent-eval-harness](https://github.com/opendatahub-io/agent-eval-harness) for the evaluation infrastructure that powers `/skill:measure`
